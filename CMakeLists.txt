@@ -1,7 +1,7 @@
 #----------------------------------------------------------------------------
 # Setup the project
 cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
-project(musrSim_jp)
+project(musrSim_plane_truth)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -35,6 +35,7 @@ endif()
 #
 include(${Geant4_USE_FILE})
 include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_SOURCE_DIR}/third_party/EcoMug)
 
 
 #----------------------------------------------------------------------------
@@ -47,7 +48,7 @@ file(GLOB headers ${PROJECT_SOURCE_DIR}/include/*.hh ${PROJECT_SOURCE_DIR}/inclu
 #----------------------------------------------------------------------------
 # Add the executable, and link it to the Geant4 libraries
 #
-add_executable(musrSim_jp musrSim.cc ${sources} ${headers} include/rootEventSelector.hh src/rootEventSelector.cc)
+add_executable(musrSim_plane_truth musrSim.cc ${sources} ${headers} include/rootEventSelector.hh src/rootEventSelector.cc)
 ##FIND_PACKAGE( ROOT )
 #SET(ROOT_CONFIG_EXECUTABLE /home/download/Root_5.24_source/root/bin/root-config)
 ## ask root-config for the library varaibles
@@ -57,7 +58,7 @@ add_executable(musrSim_jp musrSim.cc ${sources} ${headers} include/rootEventSele
 ##SET(ROOT_LIBRARIES ${root_flags})
 #EchoString("Kamil ${root_flags}  Kamil")
 #target_link_libraries(musrSim ${Geant4_LIBRARIES} ${root_flags})
-target_link_libraries(musrSim_jp ${Geant4_LIBRARIES} ${ROOT_LIBRARIES})
+target_link_libraries(musrSim_plane_truth ${Geant4_LIBRARIES} ${ROOT_LIBRARIES})
 #----------------------------------------------------------------------------
 # Copy all scripts to the build directory, i.e. the directory in which we
 # build B1. This is so that we can run the executable directly because it
@@ -85,6 +86,15 @@ endforeach()
 #----------------------------------------------------------------------------
 # Install the executable to 'bin' directory under CMAKE_INSTALL_PREFIX
 #
-install(TARGETS musrSim_jp DESTINATION bin)
+install(TARGETS musrSim_plane_truth DESTINATION bin)
+
+option(BUILD_PLANE_TRUTH_TESTS "Build the independent four-plane crossing test" ON)
+if(BUILD_PLANE_TRUTH_TESTS)
+  enable_testing()
+  add_executable(primary_muon_plane_truth_test tests/primary_muon_plane_truth_test.cc)
+  add_test(NAME primary_muon_plane_truth COMMAND primary_muon_plane_truth_test)
+  add_executable(ecomug_api_test tests/ecomug_api_test.cc)
+  add_test(NAME ecomug_api COMMAND ecomug_api_test)
+endif()
 
 

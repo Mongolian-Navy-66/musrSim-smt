@@ -1,4 +1,90 @@
 
+# musrSim plane-truth extension
+
+This is a separate repository based on `TwinklyStar/musrSim-jp` commit `168ac52`
+(which inherited SMS features). It adds primary-muon crossings of four fixed
+world-z planes to ROOT `t1` and restores the EcoMug commands required by the
+sim4 cosmic-muon macro. The original JP code is retained below for reference.
+The PSI, SMS, and JP source repositories were reviewed; this extension stays
+on the JP/Geant4 10.7.2 branch used by the current STL macros.
+
+## Build on the cluster
+
+```bash
+source /home/liyifei/load_lcg.sh
+cd /lustre/collider/liyifei/musrSim-plane-truth  # adjust to your upload location
+cmake -S . -B build -DWITH_GEANT4_UIVIS=OFF
+cmake --build build -j4
+ctest --test-dir build --output-on-failure
+export MUSRSIM_BIN="$PWD/build/musrSim_plane_truth"
+```
+
+The build still uses Geant4, ROOT, and CMake in the same style as SMS/JP. The
+bundled EcoMug v2.1 header requires no separate cluster installation; see
+`third_party/EcoMug/PROVENANCE.md` and its GPL-3.0 license. Keep the old
+`musrSim_upgrade` executable and existing ROOT files for historical results.
+
+## New macro and ROOT interface
+
+```text
+/musr/command truthPlaneZ 749 448 -272 -574
+/gun/ecomug/useEcoMug true
+/gun/ecomug/shapeConstruct sphere 1000 0 0 0 0
+# optional: /gun/ecomug/constraints 10 10000 20 60 0 180
+```
+
+`truthPlaneZ` gives L1-L4 reference z in world mm, in strictly descending
+order. When omitted, JP output is unchanged. When enabled, `t1` adds
+`truthPlaneX/Y/Z[4]`, `truthPlaneCount[4]`, `truthPlaneRefZ[4]`, and
+`truthPlanePrimaryMuonCount`. Only a primary (`ParentID=0`) muon (`PDG=±13`)
+crossing downward is recorded. The first step crossing is retained for
+diagnostics; count 0 or greater than 1, and a primary-muon count other than 1,
+are invalid independent references. Missing coordinates are NaN. All
+coordinates use world mm and arise from step-endpoint interpolation, not
+detector hits or the initial momentum line. No detector volume or transport
+step limit is added. With curved field propagation, endpoint interpolation
+should be treated as a chord approximation.
+
+In plane-truth mode, `t1` also supplies `parID` (generated primary PDG) and
+`parIniPosX/Y/Z`, `parIniMomX/Y/Z` (generated world position in mm and momentum
+in MeV/c). These match the initial-truth column names expected by the existing
+analysis exporter. They are not substituted for actual downstream crossings.
+
+EcoMug v2.1 interprets the five geometry numbers as plane width/height or
+sphere radius/unused 0 or cylinder radius/height, then centre x/y/z, all in
+mm. `constraints` takes momentum limits in MeV/c and angle limits in degrees.
+The adapter converts momentum to/from EcoMug GeV/c and generates world-downward
+directions using EcoMug's returned world polar angle (already measured from
+positive z and greater than 90 degrees for downward muons). The selected
+EcoMug seed is printed and stored as `ecoMugSeed` in
+`t1`. EcoMug v2.1 uses a separate charge random engine, so this seed does not
+guarantee bitwise reproduction of the complete charge sequence.
+
+The sim4/sim5 job scripts in `muography_shine` require an absolute
+`MUSRSIM_BIN` and write into `data_plane_truth/`; they do not overwrite the
+old `data/`. Before submitting Condor jobs, create the new log directories and
+export `MUSRSIM_BIN` in the submission environment (the submit files pass it
+through with `getenv = True`):
+
+```bash
+cd /lustre/collider/liyifei/muography_shine/sim4_empty_truth
+mkdir -p logs_plane_truth/{logs,out,err}
+./run.sh 90 4090 1000                 # pilot; use a new run number/seed
+root -l data_plane_truth/musr_90_4090.root
+# ROOT prompt: t1->Print(); t1->GetEntries();
+```
+
+Run a matching sim5 pilot, then export all three event-aligned tables with
+`analysis/extract_truth_hits.cpp` using its final `require_plane_truth=true`
+argument. It also writes per-file `*_generation.txt`. Verify a small pilot
+and generator distributions against the historical sample before any full
+sim4/sim5 rerun. `storeOnlyEventsWithHits true` means `t1` covers stored hit
+events; `geantParametersD[5]` supplies each run's generated-event count.
+Move pilot ROOT files into a `data_plane_truth/pilot/` subdirectory before
+exporting the production runs so they do not enter the full-run sample.
+
+## Historical JP README
+
 # musrsim-jp
 Geant4 package for musrSim (Zhi Yuan J-PARC project dedicated)
 It is transferred from musrsim-sms (Shanghai Muon Source dedicated)

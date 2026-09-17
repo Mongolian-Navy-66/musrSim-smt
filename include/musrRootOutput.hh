@@ -28,6 +28,7 @@
 #include "globals.hh"
 #include "G4ThreeVector.hh"
 #include "rootEventSelector.hh"
+#include "PrimaryMuonPlaneTruth.hh"
 //  ROOT
 #include "TFile.h"
 #include "TTree.h"
@@ -57,6 +58,23 @@ public:
     void EndOfRunAction();
     void FillEvent();
     void ClearAllRootVariables();
+    void ConfigureTruthPlanes(const std::array<double, PrimaryMuonPlaneTruth::kPlanes>& z)
+        { truthPlanes.Configure(z); }
+    void RecordTruthPlaneStep(int trackID, int parentID, int pdg,
+                              const G4ThreeVector& pre, const G4ThreeVector& post) {
+        truthPlanes.Observe(trackID, parentID, pdg,
+            pre.x()/CLHEP::mm, pre.y()/CLHEP::mm, pre.z()/CLHEP::mm,
+            post.x()/CLHEP::mm, post.y()/CLHEP::mm, post.z()/CLHEP::mm);
+    }
+    bool TruthPlanesEnabled() const { return truthPlanes.enabled; }
+    void SetEcoMugEnabled(bool enabled) { ecoMugEnabled = enabled; }
+    void SetEcoMugSeed(ULong64_t seed) { ecoMugSeed = seed; }
+    void SetPrimaryParticleTruth(G4int pdg, G4double x, G4double y, G4double z,
+                                 G4double px, G4double py, G4double pz) {
+        parID = pdg;
+        parIniPosX = x; parIniPosY = y; parIniPosZ = z;
+        parIniMomX = px; parIniMomY = py; parIniMomZ = pz;
+    }
     void SetVolumeIDMapping(std::string logivol, int volumeID);
     G4int ConvertVolumeToID(std::string logivol);
     G4int ConvertProcessToID(std::string processName);
@@ -280,6 +298,12 @@ private:
     static const Int_t maxNGeantParameters=30;
     char   rootOutputDirectoryName[1000];
     Double_t GeantParametersD[maxNGeantParameters];   // parameters transfered from GEANT to Root
+    PrimaryMuonPlaneTruth truthPlanes;
+    bool ecoMugEnabled = false;
+    ULong64_t ecoMugSeed = 0;
+    G4int parID = 0;
+    G4double parIniPosX = 0, parIniPosY = 0, parIniPosZ = 0;
+    G4double parIniMomX = 0, parIniMomY = 0, parIniMomZ = 0;
     // 0 ... fieldOption:  0 ... no field, 1 ... uniform, 2 ... gaussian, 3 ... from table
     // 1 ... fieldValue:   intensity of the magnetic field
     // 2 ... minimum of the generated decay time of the muon (in microsecond)

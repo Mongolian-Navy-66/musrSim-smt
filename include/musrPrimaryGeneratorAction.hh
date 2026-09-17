@@ -38,6 +38,7 @@ class G4ParticleGun;
 class G4Event;
 class musrDetectorConstruction;
 class musrPrimaryGeneratorMessenger;
+class EcoMug;
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo....
 
@@ -62,6 +63,9 @@ class musrPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     void SetKEnergy(G4double val);
     void SetMomentum(G4double val)          {p0=val;}
     void SetIfCosmic(G4bool val)            {if_cosmic = val;}
+    void SetEcoMugEnabled(G4bool val);
+    void ConfigureEcoMugShape(const G4String& value);
+    void ConfigureEcoMugConstraints(const G4String& value);
     void SetMomentumSmearing(G4double val)  {pSigma=val;}
     void SetMomentumBoundary(G4ThreeVector v){pMinAllowed=v[0]; pMaxAllowed=v[1];}
     void SetTilt(G4ThreeVector v)           {xangle0=v[0]; yangle0=v[1];}
@@ -114,6 +118,10 @@ class musrPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     G4double xMaxSource, yMaxSource, zMaxSource;         //P.B. 15 Dec 2009
     G4double p0, pSigma, pMinAllowed, pMaxAllowed;
     G4bool   if_cosmic;     // Meng Lv Aug 5 2022
+    EcoMug*  ecoMug;
+    G4bool   useEcoMug;
+    G4bool   ecoMugShapeConfigured;
+    G4bool   ecoMugSeeded;
     G4double theta, phi;    // Meng Lv Oct 20 2022
     G4double E_tot;
     G4double xangle0, yangle0, xangleSigma, yangleSigma, zangleSigma,pitch;

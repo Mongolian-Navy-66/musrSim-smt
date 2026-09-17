@@ -40,6 +40,12 @@
 #include <iomanip>
 #include "musrRootOutput.hh"   //cks for storing some info in the Root output file
 #include "musrErrorMessage.hh"
+#include "EcoMug.h"
+#include "G4Exception.hh"
+#include <array>
+#include <cmath>
+#include <cstdint>
+#include <sstream>
 
 
 G4bool musrPrimaryGeneratorAction::setRandomNrSeedAccordingEventNr=0;
@@ -64,7 +70,8 @@ musrPrimaryGeneratorAction::musrPrimaryGeneratorAction(
    xMaxSource0(0), yMaxSource0(0), zMaxSource0(0),
    xMaxSource(1e10*CLHEP::mm), yMaxSource(1e10*CLHEP::mm), zMaxSource(1e10*CLHEP::mm),
    p0(0), pSigma(0), pMinAllowed(0), pMaxAllowed(1e10*CLHEP::mm),
-   if_cosmic(false), E_tot(0),
+   if_cosmic(false), ecoMug(new EcoMug), useEcoMug(false),
+   ecoMugShapeConfigured(false), ecoMugSeeded(false), E_tot(0),
    xangle0(0), yangle0(0), xangleSigma(0), yangleSigma(0), pitch(0),
    UnpolarisedMuonBeam(false), TransversalyUnpolarisedMuonBeam(false), xPolarisIni(1.), yPolarisIni(0.), zPolarisIni(0.),
    xDirection(0), yDirection(0), zDirection(1.),
@@ -107,11 +114,73 @@ musrPrimaryGeneratorAction::musrPrimaryGeneratorAction(
 
 musrPrimaryGeneratorAction::~musrPrimaryGeneratorAction()
 {
+  delete ecoMug;
   if (musrParameters::boolG4GeneralParticleSource) {delete  particleSource;}
   else {delete particleGun;}
   delete gunMessenger;
   if (takeMuonsFromTurtleFile) {fclose(fTurtleFile);}
   G4cout<<"musrPrimaryGeneratorAction:   Number of Generated Events = "<<numberOfGeneratedEvents<<G4endl;
+}
+
+void musrPrimaryGeneratorAction::SetEcoMugEnabled(G4bool enabled) {
+  useEcoMug = enabled;
+  musrRootOutput::GetRootInstance()->SetEcoMugEnabled(enabled);
+}
+
+void musrPrimaryGeneratorAction::ConfigureEcoMugShape(const G4String& value) {
+  std::istringstream input(value);
+  std::string shape, extra;
+  double a, b, x, y, z;
+  if (!(input >> shape >> a >> b >> x >> y >> z) || (input >> extra) ||
+      !std::isfinite(a) || !std::isfinite(b) || !std::isfinite(x) ||
+      !std::isfinite(y) || !std::isfinite(z) || a <= 0 ||
+      ((shape == "plane" || shape == "cylinder") && b <= 0)) {
+    G4Exception("ConfigureEcoMugShape", "EcoMugShape", FatalException,
+                "Expected: plane width height x y z | sphere radius 0 x y z | cylinder radius height x y z (mm)");
+    return;
+  }
+  const std::array<double, 3> center = {{x, y, z}};
+  if (shape == "plane") {
+    ecoMug->SetUseSky();
+    ecoMug->SetSkySize({{a, b}});
+    ecoMug->SetSkyCenterPosition(center);
+  } else if (shape == "sphere") {
+    ecoMug->SetUseHSphere();
+    ecoMug->SetHSphereRadius(a);
+    ecoMug->SetHSphereCenterPosition(center);
+  } else if (shape == "cylinder") {
+    ecoMug->SetUseCylinder();
+    ecoMug->SetCylinderRadius(a);
+    ecoMug->SetCylinderHeight(b);
+    ecoMug->SetCylinderCenterPosition(center);
+  } else {
+    G4Exception("ConfigureEcoMugShape", "EcoMugShape", FatalException,
+                "Unknown EcoMug geometry; choose plane, sphere, or cylinder.");
+    return;
+  }
+  ecoMugShapeConfigured = true;
+}
+
+void musrPrimaryGeneratorAction::ConfigureEcoMugConstraints(const G4String& value) {
+  std::istringstream input(value);
+  std::string extra;
+  double minP, maxP, minTheta, maxTheta, minPhi, maxPhi;
+  if (!(input >> minP >> maxP >> minTheta >> maxTheta >> minPhi >> maxPhi) ||
+      (input >> extra) || !std::isfinite(minP) || !std::isfinite(maxP) ||
+      !std::isfinite(minTheta) || !std::isfinite(maxTheta) ||
+      !std::isfinite(minPhi) || !std::isfinite(maxPhi) ||
+      minP <= 0 || minP >= maxP || minTheta < 0 || minTheta >= maxTheta ||
+      maxTheta > 90 || minPhi < 0 || minPhi >= maxPhi || maxPhi > 360) {
+    G4Exception("ConfigureEcoMugConstraints", "EcoMugConstraints", FatalException,
+                "Expected pMin pMax thetaMin thetaMax phiMin phiMax (MeV, degrees), with increasing ranges.");
+    return;
+  }
+  ecoMug->SetMinimumMomentum(minP / 1000.0);  // EcoMug uses GeV/c.
+  ecoMug->SetMaximumMomentum(maxP / 1000.0);
+  ecoMug->SetMinimumTheta(minTheta * CLHEP::deg);
+  ecoMug->SetMaximumTheta(maxTheta * CLHEP::deg);
+  ecoMug->SetMinimumPhi(minPhi * CLHEP::deg);
+  ecoMug->SetMaximumPhi(maxPhi * CLHEP::deg);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo....
@@ -140,8 +209,38 @@ void musrPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
   G4double x, y, z;
   G4double p;
   G4double xangle, yangle;
+  G4double px = 0., py = 0., pz = 0.;
 
-  if (takeMuonsFromTurtleFile) {
+  if (useEcoMug) {
+    if (!ecoMugShapeConfigured) {
+      G4Exception("GeneratePrimaries", "EcoMugShapeMissing", FatalException,
+                  "Configure /gun/ecomug/shapeConstruct before /run/beamOn.");
+      return;
+    }
+    if (!ecoMugSeeded) {
+      std::uint64_t seed = static_cast<std::uint64_t>(CLHEP::HepRandom::getTheSeed());
+      if (seed == 0) seed = 1;
+      ecoMug->SetSeed(seed);
+      myRootOutput->SetEcoMugSeed(seed);
+      G4cout << "EcoMug v2.1 seed: " << seed << G4endl;
+      ecoMugSeeded = true;
+    }
+    ecoMug->Generate();
+    const std::array<double, 3>& position = ecoMug->GetGenerationPosition();
+    x = position[0] * CLHEP::mm;
+    y = position[1] * CLHEP::mm;
+    z = position[2] * CLHEP::mm;
+    p = ecoMug->GetGenerationMomentum() * CLHEP::GeV;
+    const double thetaEco = ecoMug->GetGenerationTheta();
+    const double phiEco = ecoMug->GetGenerationPhi();
+    px = p * std::sin(thetaEco) * std::cos(phiEco);
+    py = p * std::sin(thetaEco) * std::sin(phiEco);
+    pz = p * std::cos(thetaEco);  // EcoMug already returns a downward world polar angle.
+    const char* muonName = ecoMug->GetCharge() > 0 ? "mu+" : "mu-";
+    particleGun->SetParticleDefinition(G4ParticleTable::GetParticleTable()->FindParticle(muonName));
+    ++numberOfGeneratedEvents;
+  }
+  else if (takeMuonsFromTurtleFile) {
     char  line[501];  
     G4int checkNrOfCounts=0;
     do {
@@ -279,9 +378,11 @@ void musrPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
   }  // end of the part specific for the muons generated by random rather then from TURTLE
 
   //------- generate cos(Theta) distribution if zangleSigma < 0 and calculate final momentum
-  G4double px, py, pz;
   G4double sinXangle, sinYangle;
-  if (if_cosmic){
+  if (useEcoMug) {
+    // Momentum and direction have already been supplied by EcoMug.
+  }
+  else if (if_cosmic){
       px = p * sin(theta) * cos(phi);
       py = p * sin(theta) * sin(phi);
       pz = std::sqrt(p*p - px*px - py*py);
@@ -322,7 +423,10 @@ void musrPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
   // with an angle of acos(hat{z} dot hat{n}) - dot product
   // i.e. R is a rotation around (-n_y, n_x, 0) with angle acos(n_z). 
 
-  if ((xDirection == 0) && (yDirection == 0)) {
+  if (useEcoMug) {
+    // EcoMug generates world-coordinate positions and downward directions.
+  }
+  else if ((xDirection == 0) && (yDirection == 0)) {
     // Rotation does not work for beam direction along z.
     pz = zDirection * pz;
     // No change to the beam spot...
@@ -420,6 +524,10 @@ void musrPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 
   // Save variables into ROOT output file:
   myRootOutput->SetInitialMuonParameters(x,y,z,px,py,pz,xpolaris,ypolaris,zpolaris,ParticleTime);
+  if (myRootOutput->TruthPlanesEnabled()) {
+    myRootOutput->SetPrimaryParticleTruth(particleGun->GetParticleDefinition()->GetPDGEncoding(),
+                                          x, y, z, px, py, pz);
+  }
   myRootOutput->StoreGeantParameter(7,float(numberOfGeneratedEvents));
   myRootOutput->SetTimeToNextEvent(timeIntervalBetweenTwoEvents);
   if (boolPrintInfoAboutGeneratedParticles) {

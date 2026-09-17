@@ -35,6 +35,7 @@ class G4UIcmdWithADouble;
 class G4UIcmdWithAnInteger;
 class G4UIcmdWith3VectorAndUnit;
 class G4UIcmdWith3Vector;
+class G4UIdirectory;
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo....
 
@@ -62,6 +63,10 @@ class musrPrimaryGeneratorMessenger: public G4UImessenger
     G4UIcmdWithADoubleAndUnit* setMomentumCmd;
 
     G4UIcmdWithABool*          setCosmicMuonCmd;        // Add by Meng Lv to introduce cosmic muon energy distribution. Aug 5 2022
+    G4UIdirectory*             ecoMugDir;
+    G4UIcmdWithABool*          useEcoMugCmd;
+    G4UIcmdWithAString*        ecoMugShapeCmd;
+    G4UIcmdWithAString*        ecoMugConstraintsCmd;
 
     G4UIcmdWithADoubleAndUnit* setMomentumSmearingCmd;
     G4UIcmdWith3VectorAndUnit* setMomentumBoundaryCmd;

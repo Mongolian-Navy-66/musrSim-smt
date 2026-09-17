@@ -233,6 +233,23 @@ void musrRootOutput::BeginOfRunAction() {
     rootTree=new TTree("t1","a simple Tree with simple variables");
     if (store_runID)        {rootTree->Branch("runID",&runID,"runID/I");}
     if (store_eventID)      {rootTree->Branch("eventID",&eventID,"eventID/I");}
+    if (ecoMugEnabled)      {rootTree->Branch("ecoMugSeed", &ecoMugSeed, "ecoMugSeed/l");}
+    if (truthPlanes.enabled) {
+        rootTree->Branch("parID", &parID, "parID/I");
+        rootTree->Branch("parIniPosX", &parIniPosX, "parIniPosX/D");
+        rootTree->Branch("parIniPosY", &parIniPosY, "parIniPosY/D");
+        rootTree->Branch("parIniPosZ", &parIniPosZ, "parIniPosZ/D");
+        rootTree->Branch("parIniMomX", &parIniMomX, "parIniMomX/D");
+        rootTree->Branch("parIniMomY", &parIniMomY, "parIniMomY/D");
+        rootTree->Branch("parIniMomZ", &parIniMomZ, "parIniMomZ/D");
+        rootTree->Branch("truthPlaneX", truthPlanes.x.data(), "truthPlaneX[4]/D");
+        rootTree->Branch("truthPlaneY", truthPlanes.y.data(), "truthPlaneY[4]/D");
+        rootTree->Branch("truthPlaneZ", truthPlanes.z.data(), "truthPlaneZ[4]/D");
+        rootTree->Branch("truthPlaneCount", truthPlanes.count.data(), "truthPlaneCount[4]/I");
+        rootTree->Branch("truthPlaneRefZ", truthPlanes.referenceZ.data(), "truthPlaneRefZ[4]/D");
+        rootTree->Branch("truthPlanePrimaryMuonCount", &truthPlanes.primaryMuonCount,
+                         "truthPlanePrimaryMuonCount/I");
+    }
     if (store_weight)       {rootTree->Branch("weight",&weight,"weight/D");}
     if (store_timeToNextEvent){rootTree->Branch("timeToNextEvent",&timeToNextEvent,"timeToNextEvent/D");}
     if (store_BFieldAtDecay) {rootTree->Branch("BFieldAtDecay",&B_t,"Bx/D:By:Bz:B3:B4:B5");}
@@ -558,6 +575,10 @@ void musrRootOutput::FillEvent() {
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 void musrRootOutput::ClearAllRootVariables() {
+    truthPlanes.Reset();
+    parID = 0;
+    parIniPosX = parIniPosY = parIniPosZ = 0;
+    parIniMomX = parIniMomY = parIniMomZ = 0;
     runID=-1000;
     eventID=-1000;
     weight=1.;

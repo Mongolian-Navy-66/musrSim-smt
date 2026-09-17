@@ -29,6 +29,7 @@
 #include "G4UIcmdWithAnInteger.hh"
 #include "G4UIcmdWith3Vector.hh"
 #include "G4UIcmdWith3VectorAndUnit.hh"
+#include "G4UIdirectory.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo....
 
@@ -98,6 +99,14 @@ musrPrimaryGeneratorMessenger::musrPrimaryGeneratorMessenger(musrPrimaryGenerato
   setCosmicMuonCmd = new G4UIcmdWithABool("/gun/cosmic", this);
   setCosmicMuonCmd->SetGuidance(" Use cosmic muon energy distribution to initial particles");
   setCosmicMuonCmd->SetParameterName("mes_ifcosmic", true);
+
+  ecoMugDir = new G4UIdirectory("/gun/ecomug/");
+  useEcoMugCmd = new G4UIcmdWithABool("/gun/ecomug/useEcoMug", this);
+  useEcoMugCmd->SetGuidance("Generate the primary muon with EcoMug v2.1.");
+  ecoMugShapeCmd = new G4UIcmdWithAString("/gun/ecomug/shapeConstruct", this);
+  ecoMugShapeCmd->SetGuidance("plane width height x y z | sphere radius 0 x y z | cylinder radius height x y z (mm)");
+  ecoMugConstraintsCmd = new G4UIcmdWithAString("/gun/ecomug/constraints", this);
+  ecoMugConstraintsCmd->SetGuidance("pMin pMax thetaMin thetaMax phiMin phiMax (MeV, degrees)");
 
   setMomentumSmearingCmd = new G4UIcmdWithADoubleAndUnit("/gun/momentumsmearing",this);
   setMomentumSmearingCmd->SetGuidance(" Set sigma of the momentum of the generated muons (with unit)");
@@ -207,6 +216,10 @@ musrPrimaryGeneratorMessenger::~musrPrimaryGeneratorMessenger()
   delete setMomentumCmd;
 
   delete setCosmicMuonCmd;
+  delete useEcoMugCmd;
+  delete ecoMugShapeCmd;
+  delete ecoMugConstraintsCmd;
+  delete ecoMugDir;
 
   delete setMomentumSmearingCmd;
   delete setMomentumBoundaryCmd;
@@ -228,7 +241,10 @@ musrPrimaryGeneratorMessenger::~musrPrimaryGeneratorMessenger()
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo....
 
 void musrPrimaryGeneratorMessenger::SetNewValue(G4UIcommand * command,G4String newValue)
-{ 
+{
+  if (command == useEcoMugCmd) musrAction->SetEcoMugEnabled(useEcoMugCmd->GetNewBoolValue(newValue));
+  if (command == ecoMugShapeCmd) musrAction->ConfigureEcoMugShape(newValue);
+  if (command == ecoMugConstraintsCmd) musrAction->ConfigureEcoMugConstraints(newValue);
   if( command == setPrimaryParticleCmd)
     { musrAction->SetPrimaryParticule(newValue); }
   if( command == setvertexCmd)

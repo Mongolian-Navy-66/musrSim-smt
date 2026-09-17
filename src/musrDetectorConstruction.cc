@@ -1254,6 +1254,18 @@ G4VPhysicalVolume* musrDetectorConstruction::Construct()  {
       }
 
 
+      else if (strcmp(tmpString1,"truthPlaneZ")==0) {
+        std::array<double, PrimaryMuonPlaneTruth::kPlanes> planeZ;
+        if (sscanf(&line[0], "%*s %*s %lf %lf %lf %lf",
+                   &planeZ[0], &planeZ[1], &planeZ[2], &planeZ[3]) != 4) {
+          ReportGeometryProblem(line);
+        }
+        try {
+          myRootOutput->ConfigureTruthPlanes(planeZ);
+        } catch (const std::invalid_argument&) {
+          ReportGeometryProblem(line);
+        }
+      }
       else if (strcmp(tmpString1,"rootOutputDirectoryName")==0){
 	char rootOutDirName[1000];
 	sscanf(&line[0],"%*s %*s %s",rootOutDirName);

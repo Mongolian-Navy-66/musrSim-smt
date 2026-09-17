@@ -106,6 +106,10 @@ void musrSteppingAction::UserSteppingAction(const G4Step* aStep)  {
   G4StepPoint* postStepPoint = aStep->GetPostStepPoint();
   G4ThreeVector preStepPosition = preStepPoint->GetPosition();
   G4ThreeVector postStepPosition = postStepPoint->GetPosition();
+  if (myRootOutput->TruthPlanesEnabled() && aTrack->GetDefinition()) {
+    myRootOutput->RecordTruthPlaneStep(aTrack->GetTrackID(), aTrack->GetParentID(),
+        aTrack->GetDefinition()->GetPDGEncoding(), preStepPosition, postStepPosition);
+  }
 
   //  suspend the track if too many steps has already happened (relevant at high field)
   if (aTrack->GetCurrentStepNumber()>musrParameters::maximumNrOfStepsPerTrack) {
