@@ -1,351 +1,67 @@
+# musrSim-mst
 
-# musrSim plane-truth extension
+**Muon scattering tomography simulation with independent MC plane crossings.**
 
-This is a separate repository based on `TwinklyStar/musrSim-jp` commit `168ac52`
-(which inherited SMS features). It adds primary-muon crossings of four fixed
-world-z planes to ROOT `t1` and restores the EcoMug commands required by the
-sim4 cosmic-muon macro. The original JP code is retained below for reference.
-The PSI, SMS, and JP source repositories were reviewed; this extension stays
-on the JP/Geant4 10.7.2 branch used by the current STL macros.
+[简体中文](README.zh-CN.md) · [Notices and licenses](NOTICE.md) · [Contributing](CONTRIBUTING.md)
 
-## Build on the cluster
+`musrSim-mst` is a source fork of [musrSim-jp](https://github.com/TwinklyStar/musrSim-jp) at commit `168ac52`. That branch inherited the [SMS fork](https://github.com/kimsiang/musrsim-sms) and includes STL detector geometry and a cluster-oriented CMake build. The [PSI musrSim project](https://www.psi.ch/en/lmu/geant4-simulations) is the original upstream. This fork adds a passive record of where primary muons cross four fixed world-`z` planes. It also vendors [EcoMug v2.1](https://github.com/dr4kan/EcoMug/tree/v2.1) for the `/gun/ecomug/...` commands used by the companion cosmic-muon macro.
+
+The executable is named **`musrSim_mst`**. The original JP README and historical build notes are preserved in [`docs/upstream/`](docs/upstream/README-musrSim-jp.md). This repository contains source code and small unit tests; it does not include production ROOT files, a measured detector-resolution claim, or a replacement for the historical `musrSim_upgrade` binary.
+
+## Build
+
+The JP baseline uses Geant4 10.7.2, ROOT, CMake, and C++14. Use an environment that exposes Geant4 and ROOT to CMake. For example, on a cluster with the LCG 101 view:
 
 ```bash
-source /home/liyifei/load_lcg.sh
-cd /lustre/collider/liyifei/musrSim-plane-truth  # adjust to your upload location
+source /cvmfs/sft.cern.ch/lcg/views/LCG_101/x86_64-centos7-gcc11-opt/setup.sh
 cmake -S . -B build -DWITH_GEANT4_UIVIS=OFF
 cmake --build build -j4
 ctest --test-dir build --output-on-failure
-export MUSRSIM_BIN="$PWD/build/musrSim_plane_truth"
+./build/musrSim_mst path/to/your.mac
 ```
 
-The build still uses Geant4, ROOT, and CMake in the same style as SMS/JP. The
-bundled EcoMug v2.1 header requires no separate cluster installation; see
-`third_party/EcoMug/PROVENANCE.md` and its GPL-3.0 license. Keep the old
-`musrSim_upgrade` executable and existing ROOT files for historical results.
+If your cluster provides its own environment script (such as `load_lcg.sh`), source that instead. The build follows the JP/SMS CMake layout. The two CTest targets exercise plane interpolation and the vendored EcoMug API without requiring a production simulation. A complete Geant4/ROOT build and sim4/sim5 pilot must still be checked in the target environment.
 
-## New macro and ROOT interface
+## Record independent plane truth
+
+Add this line to a steering macro **before** `/run/beamOn`:
 
 ```text
 /musr/command truthPlaneZ 749 448 -272 -574
+```
+
+The four numbers are L1–L4 world-`z` coordinates in **mm**, strictly descending. They are example values for the companion sim4/sim5 geometry; use the actual fixed reference planes for another detector. Omitting this command retains the JP branch layout and `musrSim_jp` ROOT filename prefix; configuring it uses the `musrSim_mst` prefix. When configured, ROOT tree `t1` adds:
+
+| Branch | Meaning |
+| --- | --- |
+| `truthPlaneX/Y/Z[4]` | First downward crossing coordinates in world mm; NaN if absent. |
+| `truthPlaneCount[4]` | Downward crossing count at each plane. |
+| `truthPlaneRefZ[4]` | Configured plane positions in world mm. |
+| `truthPlanePrimaryMuonCount` | Distinct primary muon tracks observed in the event. |
+| `parID`, `parIniPosX/Y/Z`, `parIniMomX/Y/Z` | Generated primary PDG, position in mm, and momentum in MeV/c for the companion exporter. |
+
+The stepping action considers only `ParentID == 0`, PDG `±13`, and `z_pre > z_plane >= z_post`. It interpolates the crossing from the step endpoints. A layer is usable as independent truth only when its crossing count is **exactly one** and the event has **exactly one** primary muon. Repeated crossings retain the first coordinate for diagnosis; zero crossings retain NaN. The interpolation is a chord approximation if the trajectory curves significantly inside a step. These coordinates are independent of detector hits and of a straight line extrapolated from the initial momentum.
+
+The existing `storeOnlyEventsWithHits true` setting still stores only hit events in `t1`. `geantParametersD[5]` records the generated event count for each ROOT file; do not use the `t1` row count as that denominator.
+
+## EcoMug macro interface
+
+```text
 /gun/ecomug/useEcoMug true
 /gun/ecomug/shapeConstruct sphere 1000 0 0 0 0
 # optional: /gun/ecomug/constraints 10 10000 20 60 0 180
 ```
 
-`truthPlaneZ` gives L1-L4 reference z in world mm, in strictly descending
-order. When omitted, JP output is unchanged. When enabled, `t1` adds
-`truthPlaneX/Y/Z[4]`, `truthPlaneCount[4]`, `truthPlaneRefZ[4]`, and
-`truthPlanePrimaryMuonCount`. Only a primary (`ParentID=0`) muon (`PDG=±13`)
-crossing downward is recorded. The first step crossing is retained for
-diagnostics; count 0 or greater than 1, and a primary-muon count other than 1,
-are invalid independent references. Missing coordinates are NaN. All
-coordinates use world mm and arise from step-endpoint interpolation, not
-detector hits or the initial momentum line. No detector volume or transport
-step limit is added. With curved field propagation, endpoint interpolation
-should be treated as a chord approximation.
+`shapeConstruct` accepts `plane width height x y z`, `sphere radius 0 x y z`, or `cylinder radius height x y z`; lengths are mm. `constraints` accepts momentum minimum/maximum in MeV/c, polar-angle minimum/maximum in degrees, then azimuth minimum/maximum in degrees. The adapter converts EcoMug's GeV/c momentum to Geant4 units and uses EcoMug's returned world direction directly, including its downward `z` component. The chosen EcoMug seed is logged and stored as `ecoMugSeed` in `t1`. EcoMug v2.1 has a separate charge random engine, so that seed alone does not reproduce the complete charge sequence bit for bit. See [`third_party/EcoMug/PROVENANCE.md`](third_party/EcoMug/PROVENANCE.md).
 
-In plane-truth mode, `t1` also supplies `parID` (generated primary PDG) and
-`parIniPosX/Y/Z`, `parIniMomX/Y/Z` (generated world position in mm and momentum
-in MeV/c). These match the initial-truth column names expected by the existing
-analysis exporter. They are not substituted for actual downstream crossings.
+The lost-source `musrSim_upgrade` executable may have used a different EcoMug version or adapter. Compare generated-position, momentum, direction, and charge distributions statistically before interpreting a new sample alongside historical data. With hit-only storage, that comparison is conditional on the event being stored.
 
-EcoMug v2.1 interprets the five geometry numbers as plane width/height or
-sphere radius/unused 0 or cylinder radius/height, then centre x/y/z, all in
-mm. `constraints` takes momentum limits in MeV/c and angle limits in degrees.
-The adapter converts momentum to/from EcoMug GeV/c and generates world-downward
-directions using EcoMug's returned world polar angle (already measured from
-positive z and greater than 90 degrees for downward muons). The selected
-EcoMug seed is printed and stored as `ecoMugSeed` in
-`t1`. EcoMug v2.1 uses a separate charge random engine, so this seed does not
-guarantee bitwise reproduction of the complete charge sequence.
+## Companion analysis and validation
 
-The sim4/sim5 job scripts in `muography_shine` require an absolute
-`MUSRSIM_BIN` and write into `data_plane_truth/`; they do not overwrite the
-old `data/`. Before submitting Condor jobs, create the new log directories and
-export `MUSRSIM_BIN` in the submission environment (the submit files pass it
-through with `getenv = True`):
+The separate `muography_shine` analysis project contains sim4/sim5 macros, run scripts, `analysis/extract_truth_hits.cpp`, and `analysis/validate_layer_position.py`. Its scripts require `MUSRSIM_BIN` to be the absolute path of `build/musrSim_mst` and place new ROOT files in `data_plane_truth/`, leaving the old `data/` directory intact. The extractor writes aligned hits, initial truth, crossings, and per-file generation-count tables keyed by `Entry/SourceFile/SourceEntry/EventID`.
 
-```bash
-cd /lustre/collider/liyifei/muography_shine/sim4_empty_truth
-mkdir -p logs_plane_truth/{logs,out,err}
-./run.sh 90 4090 1000                 # pilot; use a new run number/seed
-root -l data_plane_truth/musr_90_4090.root
-# ROOT prompt: t1->Print(); t1->GetEntries();
-```
+Run a small sim4 and sim5 pilot first. Check `t1->Print()`, four reference `z` values, missing and repeated crossings, hit branches, STL geometry, and row identities. Validate a bent trajectory against actual downstream steps. Then compare generator distributions, run the full sample, and report four methods only on their common successful `Entry` subset. `det_xyz_ideal` is an MC-coordinate benchmark; `edep_strip_proxy` is a strip-energy readout proxy. The two legacy fit methods remain historical baselines. The companion project's `analysis/README_layer_position_validation.md` gives the exact sequence.
 
-Run a matching sim5 pilot, then export all three event-aligned tables with
-`analysis/extract_truth_hits.cpp` using its final `require_plane_truth=true`
-argument. It also writes per-file `*_generation.txt`. Verify a small pilot
-and generator distributions against the historical sample before any full
-sim4/sim5 rerun. `storeOnlyEventsWithHits true` means `t1` covers stored hit
-events; `geantParametersD[5]` supplies each run's generated-event count.
-Move pilot ROOT files into a `data_plane_truth/pilot/` subdirectory before
-exporting the production runs so they do not enter the full-run sample.
+## Credits and licenses
 
-## Historical JP README
-
-# musrsim-jp
-Geant4 package for musrSim (Zhi Yuan J-PARC project dedicated)
-It is transferred from musrsim-sms (Shanghai Muon Source dedicated)
-
-
-# Tutorial
-
-### Setup environment
-This package based on Geant4 version `10.7.2`.
-
-On `INPAC-cluster`, you can setup Geant4 enviroment with:
-
-```
-source  /cvmfs/sft.cern.ch/lcg/views/LCG_101/x86_64-centos7-gcc11-opt/setup.sh
-```
-### Download and compile the package
-
-```
-git clone https://github.com/TwinklyStar/musrSim-jp.git
-cd musrSim-jp
-mkdir build
-cd build
-cmake ../
-make -j4
-```
-### Create working directory
-
-```
-mkdir run
-cd run
-cp ../../run/1000_Laser.mac ../../run/visVRML.mac .
-```
-### Start simulation
-
-```
-../musrSim_jp 1000_Laser.mac test_run
-```
-### Run on condor
-First copy condor scripts
-```
-cp ../../run/submit.condor ../../run/run.sh .
-```
-Then submit 
-```
-condor_submit submit.condor
-```
-
-
-# Updates
-### 2021-11-30 (CC)
-Add random seed offset, only take effect with `/musr/run/randomOption 1` in mac file.
-With `randomOption=1`, Geant4 will take the current system time as the random seed. If there are mult-jobs submitted simultaneously, different jobs could have a same system time since have a same random seed. To avoid this, the random seed should be offset by a number.
-
-Example:
-```
-# Set the offset as input parameter
-../musrSim_jp 1003.mac name 10
-
-# Set the offest in macro file
-/musr/command SetRndSeedOffset 10
-```
-In this case, this random seed of this job will be offset by 10.
-In practice, we submit me jobs with `condor`, each job will be offset by their job process number.
-
-
-### 2021-11-25 (ML)
-Enables the customization of output file name in `.mac` steering file
-
-Example:
-```
-# set output file name
-/musr/command SetOutputFileName myRootFile
-```
-And the output root file will be: `musrSim_myRootFile.root`
-
-Moreover, you can specify the name as DEFAULT:
-```
-/musr/command SetOutputFileName DEFAULT
-```
-This is equivalent to running the macro without this command line
-
-
-### 2021-11-17 (CC)
-Enabled the customizing of crosssection factors on mac steering file, the default value is set to 1.0 if not specified
-
-Example:
-```
-# set gmumu xsection factor to 1000.0
-/musr/command G4EmExtraPhysics SetCrossSecFactor gmumuFactor 1000.0
-```
-
-Now can specify a name when launch the job:
-```
-../musrSim_jp 1003.mac name
-```
-The output file will be `musr_1003_name.root`.
-
-
-### 2022-1-24 (ML)
-Add branch:
-```
-det_edep_mun        # mu- energy deposition
-det_kine_mup        # mu+ kinetic energy
-det_kine_mun        # mu- kinetic energy
-det_x(/y/z)_mup     # position where mu+ hits the detector
-det_x(/y/z)_mun     # position where mu- hits the detector
-```
-You can turn off these branches by add following command in `.mac` file:
-```
-/musr/command rootOutput <branch_name> off
-```
-
-
-### 2022-4-2 (ML)
-Add customization of 3 specific physic processes. Use command below in `.mac` file to control:
-```
-/musr/command G4EmExtraPhysics SetProcessState GammaNuclear on(off)
-/musr/command G4EmExtraPhysics SetProcessState ElectroNuclear on(off)
-/musr/command G4EmExtraPhysics SetProcessState GammaToMuPair on(off)
-```
-
-Fix bugs about abnormal larger kinetic energy
-
-
-### 2022-4-30 (ML)
-Add branch recording the parent track ID for particles recorded in detector hit
-arrays: `det_VrtxPrtTrackID`. This is a Geant4 track ID, not a particle PDG ID.
-It is aligned with the `det_*` arrays and is filled from the parent track ID of
-the detector hit.
-
-You can turn it off by adding following command in `.mac` file:
-```
-/musr/command rootOutput det_VrtxPrtTrackID off
-```
-
-### 2022-6-26 (ML)
-Add customization of ElectroNuclear cross section factor in `.mac` file.\
-Default value is 1.0\
-For example:
-```
-# set electronuclear cross section factor to 1000
-/musr/command G4EmExtraPhysics SetCrossSecFactor enFactor 1000.0
-```
-
-### 2022-7-4 (ML)
-Enable importing geometry from `.stl` file in `.mac`.\
-Example:
-```
-#parameter guide            name  input file  material  x y z   mother      rotation      det#
-/musr/command construct stl Struc bunny.stl   G4_W      0 0 0   log_World   norot    dead 102
-```
-
-### 2022-7-11 (ML)
-Enable setting random seed from `.mac` file, if random option is set as `5`.\
-Example:
-```
-# Random seed option
-/musr/run/randomOption 5
-
-# Set random seed as 9999999
-/musr/command SetRndSeed 9999999
-```
-
-### 2022-8-6 (ML)
-Add cosmic muon energy distribution. You can turn it on/off in `.mac` file:
-Example：
-```
-# Turn on cosmic muon distribution
-/gun/cosmic true
-
-# Turn off cosmic muon distribution
-/gun/cosmic false
-```
-Once being turned on, it will overwrite all other settings for momentum and kinetic energy in `.mac` file.
-
-### 2022-11-24 (ML & XT)
-Add event display, which can store 1 specific event visualization each run.
-To turn on this function, you should make following changes in `.mac` file in specific positions
-
-Example: the macro showed below stores the visualization of 11th event (event number is 10). Lines with arrow are newly added
-```
-...
-##### VISUALIZATION #####
-/vis/drawOnlyToBeKeptEvents         # <----
-/musr/command VisualizeEvent 10     # <----
-/vis/disable                        # Do NOT comment this line
-#/control/execute visFromToni.mac
-#/control/execute visDawn101.mac
-/control/execute visVRML.mac
-...
-
-##### BEAM ON #####
-/run/beamon 100
-/vis/enable                         # <----
-/vis/reviewKeptEvents               # <----
-...
-
-```
-
-### 2022-11-26 (ML)
-
-Add root event selector. Only events that satisfy the selection will be stored\
-You can customize your selection in `rootEventSelector::Selector()`, which is in `rootEventSelector.cc`\
-A simple example is already provided in `rootEventSelector::Selector()`\
-After adding your cut, be sure to **build again before running**.
-
-You can turn your selector on by adding following command in `.mac` file:
-```
-/musr/command rootEventSelector on
-```
-
-### 2023-1-18 (ML)
-
-Add momentum information of the first electron decayed from mu-.\
-Note that these branches are only valid when initial particle is mu-.\
-Branch name: `elIniMomX(/Y/Z)`
-
-You can turn it off by adding following command in `.mac` file:
-```
-/musr/command rootOutput <branch_name> off
-```
-
-### 2023-5-28 (ML)
-
-Add mu- captured by nucleus at rest physics process.\
-You can turn on/off this process by adding following line in `.mac` file:
-
-```
-# This process is set to occur only when mu- is at rest
-/musr/command process addProcess mu- G4MuonMinusCapture
-```
-
-### 2024-2-10 (ML)
-
-Add stopping position information for the first positron decayed from mu+. The
-code stores the track ID of the positron produced by `DecayWithSpin`, then saves
-that same positron's final position when the track stops or is killed.\
-Branch name: `posEndPosX(/Y/Z)`; unit is mm.
-
-You can turn it off by adding following command in `.mac` file:
-```
-/musr/command rootOutput <branch_name> off
-```
-
-### 2026-5-14 (ML)
-
-Update `FindROOT.cmake` ROOT version parsing so both old slash-style versions
-such as `5.00/00` and dot-style versions such as `6.30.06` can be handled.
-
-Add parent track ID output for particles recorded by special save volumes. When
-a particle first enters a configured save volume, the ROOT tree now stores its
-Geant4 parent track ID in `save_PrtTrackID`, aligned with the existing `save_*`
-arrays. This complements `det_VrtxPrtTrackID`: `det_VrtxPrtTrackID` is for
-normal detector-hit rows, while `save_PrtTrackID` is for special save-volume
-rows.
-
-The `det_VrtxPrtTrackID` branch has the usual `rootOutput` on/off control:
-```
-/musr/command rootOutput det_VrtxPrtTrackID off
-```
-
-There is no separate `rootOutput` on/off switch for `save_PrtTrackID` at this
-time. The `save_*` branches, including `save_PrtTrackID`, are created together
-when at least one special save volume is configured.
+The repository retains upstream Git history and copyright notices. GPL-covered musrSim and EcoMug portions are distributed under GPLv3 because EcoMug v2.1 is GPLv3 and musrSim headers permit GPLv2 or later; other third-party files retain their own notices. See [`NOTICE.md`](NOTICE.md), the top-level [`LICENSE`](LICENSE), upstream [`COPYING`](COPYING), and the licenses in `third_party/` and `licenses/`. This product includes software developed by Members of the Geant4 Collaboration ( http://cern.ch/geant4 ).

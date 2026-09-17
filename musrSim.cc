@@ -53,9 +53,13 @@
 //#include "F04GlobalField.hh"
 
 int main(int argc,char** argv) {
+    if (argc < 2) {
+        std::cerr << "Usage: musrSim_mst <steering.mac> [output-label] [seed-offset]" << std::endl;
+        return 2;
+    }
     //  XInitThreads();
     G4cout<<"\n\n*************************************************************"<<G4endl;
-    G4cout<<" musrSim version 1.0.5 for Geant4.10.3, released on 20 Mar 2017"<<G4endl;
+    G4cout<<" musrSim-mst (based on musrSim-jp; see README for provenance)"<<G4endl;
     G4cout<<"      WWW:  https://www.psi.ch/lmu/geant4-simulations"<<G4endl;
     // choose the Random engine
     //  CLHEP::HepRandom::setTheEngine(new CLHEP::RanecuEngine);   // the /musr/run/randomOption 2 does not work with RanecuEngine
@@ -88,7 +92,7 @@ int main(int argc,char** argv) {
 
     if(argc > 2) {
         name = std::string(argv[2]);
-        std::cout << "\nmusrSim.cc: Set output ROOT file: " << "data/musrSim_" << atoi(argv[1]) << "_" << name << ".root\n" << std::endl;
+        std::cout << "musrSim_mst: requested output label: " << name << std::endl;
     }
     if(argc > 3) random_seed_offset = atoi(argv[3]);
     // Read from macro to customize output ROOT file name
@@ -100,14 +104,12 @@ int main(int argc,char** argv) {
         std::string cmd1, cmd2, cmd3;
         if (ss >> cmd1 >> cmd2 >> cmd3){
             if (!cmd1.compare("/musr/command") && !cmd2.compare("SetOutputFileName")){
-                char output_num[4];
                 if (!cmd3.compare("DEFAULT")) {
-                    sprintf(output_num, "%03d", atoi(argv[1]));
-                    std::cout << "\nmusrSim.cc: Set default output ROOT file: " <<"data/musrSim_jp" << output_num << ".root\n" << std::endl;
+                    std::cout << "musrSim_mst: default ROOT output label requested" << std::endl;
                 }
                 else {
                     name = cmd3;
-                    std::cout << "\nmusrSim.cc: Set output ROOT file: " << "data/musrSim_jp" << output_num << "_" << cmd3 << ".root\n" << std::endl;
+                    std::cout << "musrSim_mst: requested output label: " << name << std::endl;
                 }
             }
             else if (!cmd1.compare("/musr/command") && !cmd2.compare("SetRndSeed")){

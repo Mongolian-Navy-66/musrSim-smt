@@ -1,0 +1,22 @@
+name: Standalone C++ tests
+
+"on":
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Compile plane crossing test
+        run: c++ -std=c++14 -Wall -Wextra -Werror -Iinclude tests/primary_muon_plane_truth_test.cc -o plane-test
+      - name: Run plane crossing test
+        run: ./plane-test
+      - name: Compile EcoMug API test
+        run: c++ -std=c++14 -Wall -Wextra -Ithird_party/EcoMug tests/ecomug_api_test.cc -o ecomug-test
+      - name: Run EcoMug API test
+        run: ./ecomug-test

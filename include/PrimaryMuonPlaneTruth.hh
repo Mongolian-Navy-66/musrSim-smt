@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 #ifndef PRIMARY_MUON_PLANE_TRUTH_HH
 #define PRIMARY_MUON_PLANE_TRUTH_HH
 

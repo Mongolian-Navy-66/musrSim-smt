@@ -1,21 +1,15 @@
 #----------------------------------------------------------------------------
 # Setup the project
-cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
-project(musrSim_plane_truth)
+cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
+project(musrSim_mst)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #----------------------------------------------------------------------------
-# KAMIL CHANGES:
-#include_directories ("/home/download/Root_5.24_source/root/include")
-# Load some basic macros which are needed later on
+# Use the JP/SMS root-config discovery path.
 include(FindROOT.cmake)
-
-set(INCLUDE_DIRECTORIES ${ROOT_INCLUDE_DIR})
-include_directories( ${INCLUDE_DIRECTORIES})
-
-set(LINK_DIRECTORIES${ROOT_LIBRARY_DIR})
-link_directories( ${LINK_DIRECTORIES})
+include_directories(${ROOT_INCLUDE_DIR})
+link_directories(${ROOT_LIBRARY_DIR})
 
 #----------------------------------------------------------------------------
 # Find Geant4 package, activating all available UI and Vis drivers by default
@@ -48,17 +42,8 @@ file(GLOB headers ${PROJECT_SOURCE_DIR}/include/*.hh ${PROJECT_SOURCE_DIR}/inclu
 #----------------------------------------------------------------------------
 # Add the executable, and link it to the Geant4 libraries
 #
-add_executable(musrSim_plane_truth musrSim.cc ${sources} ${headers} include/rootEventSelector.hh src/rootEventSelector.cc)
-##FIND_PACKAGE( ROOT )
-#SET(ROOT_CONFIG_EXECUTABLE /home/download/Root_5.24_source/root/bin/root-config)
-## ask root-config for the library varaibles
-#EXEC_PROGRAM( ${ROOT_CONFIG_EXECUTABLE}
-# ARGS "--noldflags --noauxlibs --libs"
-# OUTPUT_VARIABLE root_flags )
-##SET(ROOT_LIBRARIES ${root_flags})
-#EchoString("Kamil ${root_flags}  Kamil")
-#target_link_libraries(musrSim ${Geant4_LIBRARIES} ${root_flags})
-target_link_libraries(musrSim_plane_truth ${Geant4_LIBRARIES} ${ROOT_LIBRARIES})
+add_executable(musrSim_mst musrSim.cc ${sources} ${headers})
+target_link_libraries(musrSim_mst ${Geant4_LIBRARIES} ${ROOT_LIBRARIES})
 #----------------------------------------------------------------------------
 # Copy all scripts to the build directory, i.e. the directory in which we
 # build B1. This is so that we can run the executable directly because it
@@ -86,7 +71,7 @@ endforeach()
 #----------------------------------------------------------------------------
 # Install the executable to 'bin' directory under CMAKE_INSTALL_PREFIX
 #
-install(TARGETS musrSim_plane_truth DESTINATION bin)
+install(TARGETS musrSim_mst DESTINATION bin)
 
 option(BUILD_PLANE_TRUTH_TESTS "Build the independent four-plane crossing test" ON)
 if(BUILD_PLANE_TRUTH_TESTS)

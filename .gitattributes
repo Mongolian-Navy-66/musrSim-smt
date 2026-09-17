@@ -1,0 +1,6 @@
+*.sh text eol=lf
+*.mac text eol=lf
+*.md text eol=lf
+*.cc text eol=lf
+*.hh text eol=lf
+*.yml text eol=lf

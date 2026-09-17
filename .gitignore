@@ -1,8 +1,14 @@
-########## Meng Lv's gitignore ##########
-/cmake-build-debug/
-/cmake-build-default/
-/install/
+# Local builds and IDE state
 /build/
+/cmake-build-*/
+/install/
 /.idea/
+/.vscode/
+*.obj
+*.o
+*.exe
+
+# Generated simulation outputs and scratch work
+*.root
+*.wrl
 /run/multiSimuScript/
-########################################

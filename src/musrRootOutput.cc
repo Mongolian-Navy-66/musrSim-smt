@@ -216,12 +216,13 @@ void musrRootOutput::BeginOfRunAction() {
     G4cout << "musrRootOutput::BeginOfRunAction()  Defining the Root tree and branches:"<<G4endl;
     G4int tmpRunNr=(G4RunManager::GetRunManager())->GetCurrentRun()->GetRunID();
     char RootOutputFileName[200];
+    const char* rootPrefix = truthPlanes.enabled ? "musrSim_mst" : "musrSim_jp";
     //  sprintf(RootOutputFileName, "data/musr_%i.root", tmpRunNr);
     if(run_name!="") {
-        sprintf(RootOutputFileName, "%s/musrSim_jp%03d_%s.root",rootOutputDirectoryName,tmpRunNr,run_name.c_str());
+        sprintf(RootOutputFileName, "%s/%s%03d_%s.root",rootOutputDirectoryName,rootPrefix,tmpRunNr,run_name.c_str());
     }
     else {
-        sprintf(RootOutputFileName, "%s/musrSim_jp%03d.root",rootOutputDirectoryName,tmpRunNr);
+        sprintf(RootOutputFileName, "%s/%s%03d.root",rootOutputDirectoryName,rootPrefix,tmpRunNr);
     }
 
     rootFile=new TFile(RootOutputFileName,"recreate");
