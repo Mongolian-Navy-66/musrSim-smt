@@ -67,6 +67,16 @@ public:
             post.x()/CLHEP::mm, post.y()/CLHEP::mm, post.z()/CLHEP::mm);
     }
     bool TruthPlanesEnabled() const { return truthPlanes.enabled; }
+    bool DiagnosticTruthEnabled() const;
+    void RecordDiagnosticTrack(G4int trackID, G4int parentID, G4int pdg,
+                               const G4String& creatorProcess, const G4String& vertexVolume,
+                               const G4ThreeVector& vertexPosition,
+                               const G4ThreeVector& vertexMomentum, G4double vertexKineticEnergy);
+    void RecordDiagnosticStep(G4int detID, G4int trackID, G4double edep,
+                              const G4ThreeVector& prePosition,
+                              const G4ThreeVector& postPosition,
+                              G4double stepLength, G4double globalTime,
+                              G4double kineticEnergy, const G4String& stepProcess);
     void SetEcoMugEnabled(bool enabled) { ecoMugEnabled = enabled; }
     void SetEcoMugSeed(ULong64_t seed) { ecoMugSeed = seed; }
     void SetPrimaryParticleTruth(G4int pdg, G4double x, G4double y, G4double z,
@@ -315,6 +325,35 @@ private:
     //                    in case of Turtle nr. of events tried);
 
     // Variables common to the whole event:
+    TTree* diagnosticTree;
+    Int_t diagnosticRunID;
+    Int_t diagnosticEventID;
+    std::vector<G4int> diagnosticTrackID;
+    std::vector<G4int> diagnosticTrackParentID;
+    std::vector<G4int> diagnosticTrackPDG;
+    std::vector<std::string> diagnosticTrackCreatorProcess;
+    std::vector<std::string> diagnosticTrackVertexVolume;
+    std::vector<G4double> diagnosticTrackVertexX;
+    std::vector<G4double> diagnosticTrackVertexY;
+    std::vector<G4double> diagnosticTrackVertexZ;
+    std::vector<G4double> diagnosticTrackVertexPx;
+    std::vector<G4double> diagnosticTrackVertexPy;
+    std::vector<G4double> diagnosticTrackVertexPz;
+    std::vector<G4double> diagnosticTrackVertexKine;
+    std::vector<G4int> diagnosticStepDetID;
+    std::vector<G4int> diagnosticStepTrackID;
+    std::vector<G4double> diagnosticStepEdep;
+    std::vector<G4double> diagnosticStepPreX;
+    std::vector<G4double> diagnosticStepPreY;
+    std::vector<G4double> diagnosticStepPreZ;
+    std::vector<G4double> diagnosticStepPostX;
+    std::vector<G4double> diagnosticStepPostY;
+    std::vector<G4double> diagnosticStepPostZ;
+    std::vector<G4double> diagnosticStepLength;
+    std::vector<G4double> diagnosticStepGlobalTime;
+    std::vector<G4double> diagnosticStepKine;
+    std::vector<std::string> diagnosticStepProcess;
+
     Int_t runID;
     Int_t eventID;
     Double_t weight;

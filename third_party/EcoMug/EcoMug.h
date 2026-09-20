@@ -551,7 +551,12 @@ public:
   };
   /// Set the seed for the internal PRNG (if 0 a random seed is used)
   void SetSeed(std::uint64_t seed) {
-    if (seed > 0) mRandom.SetSeed(seed);
+    if (seed > 0) {
+      mRandom.SetSeed(seed);
+      // Charge sampling uses a separate standard-library engine. Seed both
+      // engines so a requested EcoMug seed fully determines the primary.
+      mEngineC.seed(seed);
+    }
   };
   /// Set minimum generation Momentum
   void SetMinimumMomentum(double momentum) {

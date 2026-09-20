@@ -38,6 +38,7 @@ class musrParameters {
     static G4String myRandomNumberFileName;  // name of the file with random numbers for RandomOption=3 in musrDetectorMessenger
     static G4bool storeOnlyEventsWithHits;   // variable specifying whether to store interesting 
                                              // or all events into the ROOT tree. (default = true)
+    static G4bool storeDiagnosticTruth;      // optional event-aligned track/step truth tree (default = false)
     static G4int  storeOnlyEventsWithHitInDetID; // simillar to "storeOnlyEventsWithHits".  The event is stored
                                              // only and only if there was a hit in the detector with the ID 
                                              // equal to storeOnlyEventsWithHitInDetID.

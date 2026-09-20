@@ -92,6 +92,16 @@ void musrSteppingAction::UserSteppingAction(const G4Step* aStep)  {
 
   G4Track* aTrack = aStep->GetTrack();
 
+  if (myRootOutput->DiagnosticTruthEnabled() && aTrack->GetCurrentStepNumber()==1 && aTrack->GetDefinition()!=NULL) {
+    G4String creatorProcess="initialParticle";
+    if (aTrack->GetCreatorProcess()!=NULL) creatorProcess=aTrack->GetCreatorProcess()->GetProcessName();
+    G4String vertexVolume="undefined";
+    if (aTrack->GetLogicalVolumeAtVertex()!=NULL) vertexVolume=aTrack->GetLogicalVolumeAtVertex()->GetName();
+    myRootOutput->RecordDiagnosticTrack(aTrack->GetTrackID(), aTrack->GetParentID(),
+        aTrack->GetDefinition()->GetPDGEncoding(), creatorProcess, vertexVolume,
+        aTrack->GetVertexPosition(), aTrack->GetMomentum(), aTrack->GetVertexKineticEnergy());
+  }
+
   // kill the track, if required by user:
   G4String p_name = "";
   if (aTrack->GetDefinition()) {

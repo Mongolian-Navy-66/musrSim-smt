@@ -64,6 +64,7 @@ class musrPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     void SetMomentum(G4double val)          {p0=val;}
     void SetIfCosmic(G4bool val)            {if_cosmic = val;}
     void SetEcoMugEnabled(G4bool val);
+    void SetEcoMugSeed(G4int val)            {ecoMugExplicitSeed = val;}
     void ConfigureEcoMugShape(const G4String& value);
     void ConfigureEcoMugConstraints(const G4String& value);
     void SetMomentumSmearing(G4double val)  {pSigma=val;}
@@ -122,6 +123,7 @@ class musrPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     G4bool   useEcoMug;
     G4bool   ecoMugShapeConfigured;
     G4bool   ecoMugSeeded;
+    G4int    ecoMugExplicitSeed;
     G4double theta, phi;    // Meng Lv Oct 20 2022
     G4double E_tot;
     G4double xangle0, yangle0, xangleSigma, yangleSigma, zangleSigma,pitch;
@@ -159,5 +161,4 @@ private:
 };
 
 #endif
-
 

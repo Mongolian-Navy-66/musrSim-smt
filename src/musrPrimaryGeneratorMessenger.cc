@@ -103,6 +103,10 @@ musrPrimaryGeneratorMessenger::musrPrimaryGeneratorMessenger(musrPrimaryGenerato
   ecoMugDir = new G4UIdirectory("/gun/ecomug/");
   useEcoMugCmd = new G4UIcmdWithABool("/gun/ecomug/useEcoMug", this);
   useEcoMugCmd->SetGuidance("Generate the primary muon with EcoMug v2.1.");
+  ecoMugSeedCmd = new G4UIcmdWithAnInteger("/gun/ecomug/seed", this);
+  ecoMugSeedCmd->SetGuidance("Set an explicit reproducible EcoMug seed; omit to retain the CLHEP-derived default.");
+  ecoMugSeedCmd->SetParameterName("seed", false);
+  ecoMugSeedCmd->SetRange("seed>0");
   ecoMugShapeCmd = new G4UIcmdWithAString("/gun/ecomug/shapeConstruct", this);
   ecoMugShapeCmd->SetGuidance("plane width height x y z | sphere radius 0 x y z | cylinder radius height x y z (mm)");
   ecoMugConstraintsCmd = new G4UIcmdWithAString("/gun/ecomug/constraints", this);
@@ -217,6 +221,7 @@ musrPrimaryGeneratorMessenger::~musrPrimaryGeneratorMessenger()
 
   delete setCosmicMuonCmd;
   delete useEcoMugCmd;
+  delete ecoMugSeedCmd;
   delete ecoMugShapeCmd;
   delete ecoMugConstraintsCmd;
   delete ecoMugDir;
@@ -243,6 +248,7 @@ musrPrimaryGeneratorMessenger::~musrPrimaryGeneratorMessenger()
 void musrPrimaryGeneratorMessenger::SetNewValue(G4UIcommand * command,G4String newValue)
 {
   if (command == useEcoMugCmd) musrAction->SetEcoMugEnabled(useEcoMugCmd->GetNewBoolValue(newValue));
+  if (command == ecoMugSeedCmd) musrAction->SetEcoMugSeed(ecoMugSeedCmd->GetNewIntValue(newValue));
   if (command == ecoMugShapeCmd) musrAction->ConfigureEcoMugShape(newValue);
   if (command == ecoMugConstraintsCmd) musrAction->ConfigureEcoMugConstraints(newValue);
   if( command == setPrimaryParticleCmd)
@@ -306,4 +312,3 @@ void musrPrimaryGeneratorMessenger::SetNewValue(G4UIcommand * command,G4String n
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo....
-

@@ -34,6 +34,7 @@ musrRootOutput::musrRootOutput(std::string name) {
     // to 100 GB (instead of 1.9 GB).
     run_name = name;
     pointerToRoot=this;
+    diagnosticTree=NULL;
 
     // Assign this implementation to rootEventSelector
     rootEventSelector* myEventSelector = rootEventSelector::GetInstance();
@@ -232,6 +233,37 @@ void musrRootOutput::BeginOfRunAction() {
         musrErrorMessage::GetInstance()->musrError(FATAL,message,false);
     }
     rootTree=new TTree("t1","a simple Tree with simple variables");
+    diagnosticTree=NULL;
+    if (musrParameters::storeDiagnosticTruth) {
+        diagnosticTree=new TTree("diagnosticTruth", "optional event-aligned track and detector-step truth");
+        diagnosticTree->Branch("runID", &diagnosticRunID, "runID/I");
+        diagnosticTree->Branch("eventID", &diagnosticEventID, "eventID/I");
+        diagnosticTree->Branch("track_id", &diagnosticTrackID);
+        diagnosticTree->Branch("track_parent_id", &diagnosticTrackParentID);
+        diagnosticTree->Branch("track_pdg", &diagnosticTrackPDG);
+        diagnosticTree->Branch("track_creator_process", &diagnosticTrackCreatorProcess);
+        diagnosticTree->Branch("track_vertex_volume", &diagnosticTrackVertexVolume);
+        diagnosticTree->Branch("track_vertex_x_mm", &diagnosticTrackVertexX);
+        diagnosticTree->Branch("track_vertex_y_mm", &diagnosticTrackVertexY);
+        diagnosticTree->Branch("track_vertex_z_mm", &diagnosticTrackVertexZ);
+        diagnosticTree->Branch("track_vertex_px_MeV", &diagnosticTrackVertexPx);
+        diagnosticTree->Branch("track_vertex_py_MeV", &diagnosticTrackVertexPy);
+        diagnosticTree->Branch("track_vertex_pz_MeV", &diagnosticTrackVertexPz);
+        diagnosticTree->Branch("track_vertex_kine_MeV", &diagnosticTrackVertexKine);
+        diagnosticTree->Branch("step_det_id", &diagnosticStepDetID);
+        diagnosticTree->Branch("step_track_id", &diagnosticStepTrackID);
+        diagnosticTree->Branch("step_edep_MeV", &diagnosticStepEdep);
+        diagnosticTree->Branch("step_pre_x_mm", &diagnosticStepPreX);
+        diagnosticTree->Branch("step_pre_y_mm", &diagnosticStepPreY);
+        diagnosticTree->Branch("step_pre_z_mm", &diagnosticStepPreZ);
+        diagnosticTree->Branch("step_post_x_mm", &diagnosticStepPostX);
+        diagnosticTree->Branch("step_post_y_mm", &diagnosticStepPostY);
+        diagnosticTree->Branch("step_post_z_mm", &diagnosticStepPostZ);
+        diagnosticTree->Branch("step_length_mm", &diagnosticStepLength);
+        diagnosticTree->Branch("step_global_time_ns", &diagnosticStepGlobalTime);
+        diagnosticTree->Branch("step_kine_MeV", &diagnosticStepKine);
+        diagnosticTree->Branch("step_process", &diagnosticStepProcess);
+    }
     if (store_runID)        {rootTree->Branch("runID",&runID,"runID/I");}
     if (store_eventID)      {rootTree->Branch("eventID",&eventID,"eventID/I");}
     if (ecoMugEnabled)      {rootTree->Branch("ecoMugSeed", &ecoMugSeed, "ecoMugSeed/l");}
@@ -527,6 +559,7 @@ void musrRootOutput::BeginOfRunAction() {
 void musrRootOutput::EndOfRunAction() {
     G4cout << "musrRootOutput::EndOfRunAction() - Writing out the Root tree:"<<G4endl;
     rootTree->Write();
+    if (diagnosticTree!=NULL) diagnosticTree->Write();
     htest1->Write();
     htest2->Write();
     htest3->Write();
@@ -569,6 +602,11 @@ void musrRootOutput::FillEvent() {
     if (weight>0.) {
         if ( !((musrParameters::storeOnlyEventsWithHits)&&(det_n<=0)&&(odet_n<=0)) ) {
             rootTree->Fill();
+            if (diagnosticTree!=NULL) {
+                diagnosticRunID=runID;
+                diagnosticEventID=eventID;
+                diagnosticTree->Fill();
+            }
         }
     }
 }
@@ -608,6 +646,79 @@ void musrRootOutput::ClearAllRootVariables() {
     det_n=0;
     save_n=0;
     odet_n=0;
+    diagnosticTrackID.clear();
+    diagnosticTrackParentID.clear();
+    diagnosticTrackPDG.clear();
+    diagnosticTrackCreatorProcess.clear();
+    diagnosticTrackVertexVolume.clear();
+    diagnosticTrackVertexX.clear();
+    diagnosticTrackVertexY.clear();
+    diagnosticTrackVertexZ.clear();
+    diagnosticTrackVertexPx.clear();
+    diagnosticTrackVertexPy.clear();
+    diagnosticTrackVertexPz.clear();
+    diagnosticTrackVertexKine.clear();
+    diagnosticStepDetID.clear();
+    diagnosticStepTrackID.clear();
+    diagnosticStepEdep.clear();
+    diagnosticStepPreX.clear();
+    diagnosticStepPreY.clear();
+    diagnosticStepPreZ.clear();
+    diagnosticStepPostX.clear();
+    diagnosticStepPostY.clear();
+    diagnosticStepPostZ.clear();
+    diagnosticStepLength.clear();
+    diagnosticStepGlobalTime.clear();
+    diagnosticStepKine.clear();
+    diagnosticStepProcess.clear();
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+G4bool musrRootOutput::DiagnosticTruthEnabled() const {
+    return musrParameters::storeDiagnosticTruth;
+}
+
+void musrRootOutput::RecordDiagnosticTrack(G4int trackID, G4int parentID, G4int pdg,
+                                           const G4String& creatorProcess,
+                                           const G4String& vertexVolume,
+                                           const G4ThreeVector& vertexPosition,
+                                           const G4ThreeVector& vertexMomentum,
+                                           G4double vertexKineticEnergy) {
+    if (!musrParameters::storeDiagnosticTruth) return;
+    diagnosticTrackID.push_back(trackID);
+    diagnosticTrackParentID.push_back(parentID);
+    diagnosticTrackPDG.push_back(pdg);
+    diagnosticTrackCreatorProcess.push_back(creatorProcess);
+    diagnosticTrackVertexVolume.push_back(vertexVolume);
+    diagnosticTrackVertexX.push_back(vertexPosition.x()/CLHEP::mm);
+    diagnosticTrackVertexY.push_back(vertexPosition.y()/CLHEP::mm);
+    diagnosticTrackVertexZ.push_back(vertexPosition.z()/CLHEP::mm);
+    diagnosticTrackVertexPx.push_back(vertexMomentum.x()/CLHEP::MeV);
+    diagnosticTrackVertexPy.push_back(vertexMomentum.y()/CLHEP::MeV);
+    diagnosticTrackVertexPz.push_back(vertexMomentum.z()/CLHEP::MeV);
+    diagnosticTrackVertexKine.push_back(vertexKineticEnergy/CLHEP::MeV);
+}
+
+void musrRootOutput::RecordDiagnosticStep(G4int detID, G4int trackID, G4double edep,
+                                          const G4ThreeVector& prePosition,
+                                          const G4ThreeVector& postPosition,
+                                          G4double stepLength, G4double globalTime,
+                                          G4double kineticEnergy,
+                                          const G4String& stepProcess) {
+    if (!musrParameters::storeDiagnosticTruth) return;
+    diagnosticStepDetID.push_back(detID);
+    diagnosticStepTrackID.push_back(trackID);
+    diagnosticStepEdep.push_back(edep/CLHEP::MeV);
+    diagnosticStepPreX.push_back(prePosition.x()/CLHEP::mm);
+    diagnosticStepPreY.push_back(prePosition.y()/CLHEP::mm);
+    diagnosticStepPreZ.push_back(prePosition.z()/CLHEP::mm);
+    diagnosticStepPostX.push_back(postPosition.x()/CLHEP::mm);
+    diagnosticStepPostY.push_back(postPosition.y()/CLHEP::mm);
+    diagnosticStepPostZ.push_back(postPosition.z()/CLHEP::mm);
+    diagnosticStepLength.push_back(stepLength/CLHEP::mm);
+    diagnosticStepGlobalTime.push_back(globalTime/CLHEP::ns);
+    diagnosticStepKine.push_back(kineticEnergy/CLHEP::MeV);
+    diagnosticStepProcess.push_back(stepProcess);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

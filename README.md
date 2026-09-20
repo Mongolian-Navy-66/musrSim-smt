@@ -49,10 +49,17 @@ The existing `storeOnlyEventsWithHits true` setting still stores only hit events
 ```text
 /gun/ecomug/useEcoMug true
 /gun/ecomug/shapeConstruct sphere 1000 0 0 0 0
+/gun/ecomug/seed 6000
 # optional: /gun/ecomug/constraints 10 10000 20 60 0 180
 ```
 
-`shapeConstruct` accepts `plane width height x y z`, `sphere radius 0 x y z`, or `cylinder radius height x y z`; lengths are mm. `constraints` accepts momentum minimum/maximum in MeV/c, polar-angle minimum/maximum in degrees, then azimuth minimum/maximum in degrees. The adapter converts EcoMug's GeV/c momentum to Geant4 units and uses EcoMug's returned world direction directly, including its downward `z` component. The chosen EcoMug seed is logged and stored as `ecoMugSeed` in `t1`. EcoMug v2.1 has a separate charge random engine, so that seed alone does not reproduce the complete charge sequence bit for bit. See [`third_party/EcoMug/PROVENANCE.md`](third_party/EcoMug/PROVENANCE.md).
+`shapeConstruct` accepts `plane width height x y z`, `sphere radius 0 x y z`, or `cylinder radius height x y z`; lengths are mm. `constraints` accepts momentum minimum/maximum in MeV/c, polar-angle minimum/maximum in degrees, then azimuth minimum/maximum in degrees. The optional positive integer `seed` makes the complete EcoMug primary sequence reproducible; the local v2.1 patch seeds both the kinematic and charge engines. Without it, the historical CLHEP-derived initialization is retained. The adapter converts EcoMug's GeV/c momentum to Geant4 units and uses EcoMug's returned world direction directly, including its downward `z` component. The chosen seed is logged and stored as `ecoMugSeed` in `t1`. See [`third_party/EcoMug/PROVENANCE.md`](third_party/EcoMug/PROVENANCE.md).
+
+## Optional diagnostic truth
+
+Add `/musr/command storeDiagnosticTruth true` before `/run/beamOn` to create a `diagnosticTruth` tree aligned one-to-one with stored `t1` events. The default is `false`, in which case the tree is absent and no extra event data are collected. The diagnostic tree stores dynamic vectors for every track and every nonzero detector-Edep step: track/parent IDs, PDG, creator process, vertex volume and kinematics; and detector/track IDs, Edep, pre/post coordinates, length, time, kinetic energy, and the original Geant4 process name. `runID` and `eventID` provide the event key. The same hit-only and positive-weight predicate controls both trees; rejected events are absent from both.
+
+Diagnostic recording only reads Geant4 state and does not intentionally consume random numbers. Validate this for a production build by running identical macros with the switch off/on and comparing every `t1` value. For exact comparison, use deterministic transport initialization such as `/musr/run/randomOption 2` and an explicit `/gun/ecomug/seed` because historical `randomOption 1` includes wall-clock time.
 
 The lost-source `musrSim_upgrade` executable may have used a different EcoMug version or adapter. Compare generated-position, momentum, direction, and charge distributions statistically before interpreting a new sample alongside historical data. With hit-only storage, that comparison is conditional on the event being stored.
 

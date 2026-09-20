@@ -201,6 +201,16 @@ G4bool musrScintSD::ProcessHits(G4Step* aStep,G4TouchableHistory*)
         return false;
     }
 
+    if (myRootOutput->DiagnosticTruthEnabled()) {
+        const G4VProcess* stepProcessObject=aStep->GetPostStepPoint()->GetProcessDefinedStep();
+        G4String stepProcess=(stepProcessObject!=NULL) ? stepProcessObject->GetProcessName() : "undefined";
+        myRootOutput->RecordDiagnosticStep(myRootOutput->ConvertVolumeToID(hitLogicalVolumeName),
+            aTrack->GetTrackID(), edep,
+            aStep->GetPreStepPoint()->GetPosition(), aStep->GetPostStepPoint()->GetPosition(),
+            aStep->GetStepLength(), aTrack->GetGlobalTime(),
+            aStep->GetPreStepPoint()->GetKineticEnergy(), stepProcess);
+    }
+
     // If requested, store only the hit that happened first (usefull for some special studies, not for a serious simulation)
     if (myStoreOnlyTheFirstTimeHit) {
         G4int NbHits = scintCollection->entries();

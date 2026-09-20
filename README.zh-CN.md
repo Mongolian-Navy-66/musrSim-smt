@@ -49,10 +49,17 @@ stepping action 只处理 `ParentID == 0`、PDG 为 `±13`、且满足 `z_pre > 
 ```text
 /gun/ecomug/useEcoMug true
 /gun/ecomug/shapeConstruct sphere 1000 0 0 0 0
+/gun/ecomug/seed 6000
 # 可选：/gun/ecomug/constraints 10 10000 20 60 0 180
 ```
 
-`shapeConstruct` 支持 `plane width height x y z`、`sphere radius 0 x y z` 或 `cylinder radius height x y z`，长度单位为 mm。`constraints` 依次给出动量下/上限（MeV/c）、极角下/上限（度）、方位角下/上限（度）。适配层把 EcoMug 的 GeV/c 动量转换为 Geant4 单位，直接采用 EcoMug 返回的世界系方向，其中 `z` 分量已表示向下运动。选择的 EcoMug 种子写入日志和 `t1` 的 `ecoMugSeed`；v2.1 的电荷由独立随机引擎产生，单凭此种子不能逐位复现完整电荷序列。来源与固定版本见 [`third_party/EcoMug/PROVENANCE.md`](third_party/EcoMug/PROVENANCE.md)。
+`shapeConstruct` 支持 `plane width height x y z`、`sphere radius 0 x y z` 或 `cylinder radius height x y z`，长度单位为 mm。`constraints` 依次给出动量下/上限（MeV/c）、极角下/上限（度）、方位角下/上限（度）。可选正整数 `seed` 使完整 EcoMug 主粒子序列可重复；本地 v2.1 补丁同时播种运动学与电荷两个引擎。不设置时保留历史的 CLHEP 派生初始化。适配层把 EcoMug 的 GeV/c 动量转换为 Geant4 单位，直接采用 EcoMug 返回的世界系方向，其中 `z` 分量已表示向下运动。种子写入日志和 `t1` 的 `ecoMugSeed`。来源与固定版本见 [`third_party/EcoMug/PROVENANCE.md`](third_party/EcoMug/PROVENANCE.md)。
+
+## 可选诊断真值
+
+在 `/run/beamOn` 前加入 `/musr/command storeDiagnosticTruth true`，即可创建与已存储 `t1` 事件一一对应的 `diagnosticTruth` 树。默认严格为 `false`：此时不创建该树，也不收集额外事件数据。诊断树使用动态 vector 保存所有轨迹及所有非零探测器 Edep step：包括 track/parent ID、PDG、产生过程、顶点体积和运动学，以及探测器/track ID、Edep、pre/post 坐标、步长、时间、动能和 Geant4 原始过程名。`runID`、`eventID` 是事件键。两棵树使用相同的命中与正权重保存条件，被拒绝事件都不会写入。
+
+诊断记录只读取 Geant4 状态，不应消耗随机数。生产构建须用相同宏分别关闭/开启该开关，并逐值比较全部 `t1` 分支。精确对照应使用确定性的输运初始化（例如 `/musr/run/randomOption 2`）和显式 `/gun/ecomug/seed`；历史 `randomOption 1` 含墙钟时间，不能用于逐事件复现。
 
 失去源码的旧 `musrSim_upgrade` 可能使用不同 EcoMug 版本或适配方式。新旧样本并用之前，需要统计核对生成起点、动量、方向和电荷分布。若只保存有 hit 事件，比较对象也是“已存储事件”的条件分布。
 

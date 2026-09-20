@@ -65,6 +65,7 @@ class musrPrimaryGeneratorMessenger: public G4UImessenger
     G4UIcmdWithABool*          setCosmicMuonCmd;        // Add by Meng Lv to introduce cosmic muon energy distribution. Aug 5 2022
     G4UIdirectory*             ecoMugDir;
     G4UIcmdWithABool*          useEcoMugCmd;
+    G4UIcmdWithAnInteger*      ecoMugSeedCmd;
     G4UIcmdWithAString*        ecoMugShapeCmd;
     G4UIcmdWithAString*        ecoMugConstraintsCmd;
 
@@ -85,4 +86,3 @@ class musrPrimaryGeneratorMessenger: public G4UImessenger
     G4UIcmdWithAnInteger*      setTurtleEventNrCmd;
 };
 #endif
-

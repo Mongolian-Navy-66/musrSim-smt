@@ -71,7 +71,7 @@ musrPrimaryGeneratorAction::musrPrimaryGeneratorAction(
    xMaxSource(1e10*CLHEP::mm), yMaxSource(1e10*CLHEP::mm), zMaxSource(1e10*CLHEP::mm),
    p0(0), pSigma(0), pMinAllowed(0), pMaxAllowed(1e10*CLHEP::mm),
    if_cosmic(false), ecoMug(new EcoMug), useEcoMug(false),
-   ecoMugShapeConfigured(false), ecoMugSeeded(false), E_tot(0),
+   ecoMugShapeConfigured(false), ecoMugSeeded(false), ecoMugExplicitSeed(0), E_tot(0),
    xangle0(0), yangle0(0), xangleSigma(0), yangleSigma(0), pitch(0),
    UnpolarisedMuonBeam(false), TransversalyUnpolarisedMuonBeam(false), xPolarisIni(1.), yPolarisIni(0.), zPolarisIni(0.),
    xDirection(0), yDirection(0), zDirection(1.),
@@ -218,7 +218,9 @@ void musrPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
       return;
     }
     if (!ecoMugSeeded) {
-      std::uint64_t seed = static_cast<std::uint64_t>(CLHEP::HepRandom::getTheSeed());
+      std::uint64_t seed = ecoMugExplicitSeed > 0
+          ? static_cast<std::uint64_t>(ecoMugExplicitSeed)
+          : static_cast<std::uint64_t>(CLHEP::HepRandom::getTheSeed());
       if (seed == 0) seed = 1;
       ecoMug->SetSeed(seed);
       myRootOutput->SetEcoMugSeed(seed);

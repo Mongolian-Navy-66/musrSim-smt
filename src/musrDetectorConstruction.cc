@@ -1305,6 +1305,18 @@ G4VPhysicalVolume* musrDetectorConstruction::Construct()  {
 	if (strcmp(tmpString2,"false")==0){ musrParameters::storeOnlyEventsWithHits = false; }
       } 
 
+      else if (strcmp(tmpString1,"storeDiagnosticTruth")==0){
+        if (strcmp(tmpString2,"true")==0) {
+          musrParameters::storeDiagnosticTruth = true;
+        }
+        else if (strcmp(tmpString2,"false")==0) {
+          musrParameters::storeDiagnosticTruth = false;
+        }
+        else {
+          ReportGeometryProblem(line);
+        }
+      }
+
       else if (strcmp(tmpString1,"storeOnlyTheFirstTimeHit")==0){
 	if (strcmp(tmpString2,"true")==0){ musrParameters::storeOnlyTheFirstTimeHit = true; }
       } 

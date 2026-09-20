@@ -111,6 +111,7 @@ G4String musrParameters::mySteeringFileName="Unset";
 G4String musrParameters::myStopFileName="Unsetblablabla034tdk40928jfmfnakfh921djf02UNSET";
 G4String musrParameters::myRandomNumberFileName="Unsetblablabla034tdk40928jfmfnakfh921djf02UNSED";
 G4bool   musrParameters::storeOnlyEventsWithHits=true;
+G4bool   musrParameters::storeDiagnosticTruth=false;
 G4int    musrParameters::storeOnlyEventsWithHitInDetID=0;
 G4double musrParameters::signalSeparationTime=100*CLHEP::nanosecond;
 G4bool   musrParameters::storeOnlyTheFirstTimeHit=false;
