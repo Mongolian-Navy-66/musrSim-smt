@@ -64,6 +64,7 @@ class musrPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     void SetMomentum(G4double val)          {p0=val;}
     void SetIfCosmic(G4bool val)            {if_cosmic = val;}
     void SetEcoMugEnabled(G4bool val);
+    void SetEcoMugFixedMomentum(G4double val) { ecoMugFixedMomentum = val; }
     void SetEcoMugSeed(G4int val)            {ecoMugExplicitSeed = val;}
     void ConfigureEcoMugShape(const G4String& value);
     void ConfigureEcoMugConstraints(const G4String& value);
@@ -124,6 +125,7 @@ class musrPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     G4bool   ecoMugShapeConfigured;
     G4bool   ecoMugSeeded;
     G4int    ecoMugExplicitSeed;
+    G4double ecoMugFixedMomentum = 0;
     G4double theta, phi;    // Meng Lv Oct 20 2022
     G4double E_tot;
     G4double xangle0, yangle0, xangleSigma, yangleSigma, zangleSigma,pitch;
@@ -147,6 +149,7 @@ class musrPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     void     swapTheAxisInTurtle(float& x_x, float& x_xprime, float& y_y, float& y_yprime);
 
 public: 
+    static long materialEventSeedOffset;
     static G4bool setRandomNrSeedAccordingEventNr;
     static G4bool setRandomNrSeedFromFile;
     static G4bool setRandomNrSeedFromFile_RNDM;

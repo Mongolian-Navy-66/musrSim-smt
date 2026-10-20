@@ -29,6 +29,7 @@
 #include "G4ThreeVector.hh"
 #include "rootEventSelector.hh"
 #include "PrimaryMuonPlaneTruth.hh"
+#include "MaterialBoundaryTruth.hh"
 //  ROOT
 #include "TFile.h"
 #include "TTree.h"
@@ -57,6 +58,10 @@ public:
     void BeginOfRunAction();
     void EndOfRunAction();
     void FillEvent();
+    MaterialBoundaryTruth materialTruth;
+    bool MaterialTruthEnabled() const { return materialTruth.enabled; }
+    void SetMaterialTransportSeed(long seed) { materialTransportSeed=seed; }
+    void FillMaterialEvent(bool aborted);
     void ClearAllRootVariables();
     void ConfigureTruthPlanes(const std::array<double, PrimaryMuonPlaneTruth::kPlanes>& z)
         { truthPlanes.Configure(z); }
@@ -325,6 +330,9 @@ private:
     //                    in case of Turtle nr. of events tried);
 
     // Variables common to the whole event:
+    TTree* materialTree = nullptr;
+    Int_t materialStored = 0, materialAborted = 0;
+    Long64_t materialTransportSeed = -1;
     TTree* diagnosticTree;
     Int_t diagnosticRunID;
     Int_t diagnosticEventID;

@@ -41,6 +41,7 @@
 #include "musrRootOutput.hh"   //cks for storing some info in the Root output file
 #include "musrErrorMessage.hh"
 #include "EcoMug.h"
+#include "MaterialBoundaryTruth.hh"
 #include "G4Exception.hh"
 #include <array>
 #include <cmath>
@@ -48,6 +49,7 @@
 #include <sstream>
 
 
+long musrPrimaryGeneratorAction::materialEventSeedOffset=-1;
 G4bool musrPrimaryGeneratorAction::setRandomNrSeedAccordingEventNr=0;
 G4bool musrPrimaryGeneratorAction::setRandomNrSeedFromFile=0;
 G4bool musrPrimaryGeneratorAction::setRandomNrSeedFromFile_RNDM=0;
@@ -232,7 +234,7 @@ void musrPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
     x = position[0] * CLHEP::mm;
     y = position[1] * CLHEP::mm;
     z = position[2] * CLHEP::mm;
-    p = ecoMug->GetGenerationMomentum() * CLHEP::GeV;
+    p = MaterialFixedMomentum(ecoMug->GetGenerationMomentum() * CLHEP::GeV, ecoMugFixedMomentum);
     const double thetaEco = ecoMug->GetGenerationTheta();
     const double phiEco = ecoMug->GetGenerationPhi();
     px = p * std::sin(thetaEco) * std::cos(phiEco);
@@ -526,7 +528,7 @@ void musrPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 
   // Save variables into ROOT output file:
   myRootOutput->SetInitialMuonParameters(x,y,z,px,py,pz,xpolaris,ypolaris,zpolaris,ParticleTime);
-  if (myRootOutput->TruthPlanesEnabled()) {
+  if (myRootOutput->TruthPlanesEnabled() || myRootOutput->MaterialTruthEnabled()) {
     myRootOutput->SetPrimaryParticleTruth(particleGun->GetParticleDefinition()->GetPDGEncoding(),
                                           x, y, z, px, py, pz);
   }
@@ -629,7 +631,13 @@ void musrPrimaryGeneratorAction::SetOrReadTheRandomNumberSeeds(G4Event* anEvent)
       boolPrintInfoAboutGeneratedParticles = true;
     }
   }  
-  if (setRandomNrSeedFromFile) {
+  if (materialEventSeedOffset >= 0) {
+    const long seed=MaterialEventSeed(materialEventSeedOffset,eventID);
+    CLHEP::HepRandom::setTheSeed(seed);
+    CLHEP::RandGauss::setFlag(false);
+    musrRootOutput::GetRootInstance()->SetMaterialTransportSeed(seed);
+  }
+  else if (setRandomNrSeedFromFile) {
     //    //    G4cout<<"RandomNrInitialisers.size()="<<RandomNrInitialisers->size()<<G4endl;
     //    if (eventID < int(pointerToSeedVector->size())) {
     //    //    if (eventID < lastEventID_in_pointerToSeedVector)

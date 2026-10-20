@@ -83,3 +83,9 @@ if(BUILD_PLANE_TRUTH_TESTS)
 endif()
 
 
+
+add_executable(material_boundary_truth_test tests/material_boundary_truth_test.cc)
+target_compile_options(material_boundary_truth_test PRIVATE -UNDEBUG)
+if(BUILD_PLANE_TRUTH_TESTS)
+  add_test(NAME material_boundary_truth COMMAND material_boundary_truth_test)
+endif()

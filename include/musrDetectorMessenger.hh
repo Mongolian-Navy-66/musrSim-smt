@@ -57,6 +57,7 @@ class musrDetectorMessenger: public G4UImessenger
     G4UIcmdWithAString*        Ignore1Cmd;
     G4UIcmdWithAString*        Ignore2Cmd;
     G4UIcmdWithAnInteger*      RunIDSetCmd;
+    G4UIcmdWithAnInteger* EventSeedOffsetCmd;
     G4UIcmdWithAnInteger*      RandomOptionCmd;
     G4UIcmdWithAnInteger*      HowOftenToPrintEventCmd;
     G4UIcmdWithAnInteger*      RndmEventToSaveSeedsCmd;

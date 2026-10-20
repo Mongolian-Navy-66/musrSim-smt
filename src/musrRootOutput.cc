@@ -233,6 +233,53 @@ void musrRootOutput::BeginOfRunAction() {
         musrErrorMessage::GetInstance()->musrError(FATAL,message,false);
     }
     rootTree=new TTree("t1","a simple Tree with simple variables");
+    materialTree=nullptr;
+    if (MaterialTruthEnabled()) {
+      materialTree=new TTree("materialTruth","all generated events, passive primary Pb boundary truth");
+      materialTree->Branch("runID",&runID,"runID/I");
+      materialTree->Branch("eventID",&eventID,"eventID/I");
+      materialTree->Branch("ecoMugSeed",&ecoMugSeed,"ecoMugSeed/l");
+      materialTree->Branch("transportSeed",&materialTransportSeed,"transportSeed/L");
+      materialTree->Branch("stored",&materialStored,"stored/I");
+      materialTree->Branch("aborted",&materialAborted,"aborted/I");
+      materialTree->Branch("weight",&weight,"weight/D");
+      materialTree->Branch("parID",&parID,"parID/I");
+      materialTree->Branch("parIniPosX",&parIniPosX,"parIniPosX/D");
+      materialTree->Branch("parIniPosY",&parIniPosY,"parIniPosY/D");
+      materialTree->Branch("parIniPosZ",&parIniPosZ,"parIniPosZ/D");
+      materialTree->Branch("parIniMomX",&parIniMomX,"parIniMomX/D");
+      materialTree->Branch("parIniMomY",&parIniMomY,"parIniMomY/D");
+      materialTree->Branch("parIniMomZ",&parIniMomZ,"parIniMomZ/D");
+      materialTree->Branch("truthPlaneX",truthPlanes.x.data(),"truthPlaneX[4]/D");
+      materialTree->Branch("truthPlaneY",truthPlanes.y.data(),"truthPlaneY[4]/D");
+      materialTree->Branch("truthPlaneZ",truthPlanes.z.data(),"truthPlaneZ[4]/D");
+      materialTree->Branch("truthPlaneCount",truthPlanes.count.data(),"truthPlaneCount[4]/I");
+      materialTree->Branch("truthPlaneRefZ",truthPlanes.referenceZ.data(),"truthPlaneRefZ[4]/D");
+      materialTree->Branch("truthPlanePrimaryMuonCount",&truthPlanes.primaryMuonCount,"truthPlanePrimaryMuonCount/I");
+      materialTree->Branch("track",&materialTruth.track);
+      materialTree->Branch("kind",&materialTruth.kind);
+      materialTree->Branch("preVolume",&materialTruth.preVolume);
+      materialTree->Branch("postVolume",&materialTruth.postVolume);
+      materialTree->Branch("x",&materialTruth.x);
+      materialTree->Branch("y",&materialTruth.y);
+      materialTree->Branch("z",&materialTruth.z);
+      materialTree->Branch("prePx",&materialTruth.prePx);
+      materialTree->Branch("prePy",&materialTruth.prePy);
+      materialTree->Branch("prePz",&materialTruth.prePz);
+      materialTree->Branch("postPx",&materialTruth.postPx);
+      materialTree->Branch("postPy",&materialTruth.postPy);
+      materialTree->Branch("postPz",&materialTruth.postPz);
+      materialTree->Branch("time",&materialTruth.time);
+      materialTree->Branch("terminalTrack",&materialTruth.terminalTrack);
+      materialTree->Branch("terminalStatus",&materialTruth.terminalStatus);
+      materialTree->Branch("terminalX",&materialTruth.terminalX);
+      materialTree->Branch("terminalY",&materialTruth.terminalY);
+      materialTree->Branch("terminalZ",&materialTruth.terminalZ);
+      materialTree->Branch("terminalPx",&materialTruth.terminalPx);
+      materialTree->Branch("terminalPy",&materialTruth.terminalPy);
+      materialTree->Branch("terminalPz",&materialTruth.terminalPz);
+      materialTree->Branch("terminalTime",&materialTruth.terminalTime);
+    }
     diagnosticTree=NULL;
     if (musrParameters::storeDiagnosticTruth) {
         diagnosticTree=new TTree("diagnosticTruth", "optional event-aligned track and detector-step truth");
@@ -559,6 +606,7 @@ void musrRootOutput::BeginOfRunAction() {
 void musrRootOutput::EndOfRunAction() {
     G4cout << "musrRootOutput::EndOfRunAction() - Writing out the Root tree:"<<G4endl;
     rootTree->Write();
+    if (materialTree) materialTree->Write();
     if (diagnosticTree!=NULL) diagnosticTree->Write();
     htest1->Write();
     htest2->Write();
@@ -602,6 +650,7 @@ void musrRootOutput::FillEvent() {
     if (weight>0.) {
         if ( !((musrParameters::storeOnlyEventsWithHits)&&(det_n<=0)&&(odet_n<=0)) ) {
             rootTree->Fill();
+            materialStored=1;
             if (diagnosticTree!=NULL) {
                 diagnosticRunID=runID;
                 diagnosticEventID=eventID;
@@ -615,6 +664,8 @@ void musrRootOutput::FillEvent() {
 
 void musrRootOutput::ClearAllRootVariables() {
     truthPlanes.Reset();
+    materialTruth.Reset();
+    materialStored=0; materialAborted=0; materialTransportSeed=-1;
     parID = 0;
     parIniPosX = parIniPosY = parIniPosZ = 0;
     parIniMomX = parIniMomY = parIniMomZ = 0;
@@ -1046,4 +1097,10 @@ void musrRootOutput::SetPhotDetTime(G4double time) {
         sprintf(message,"musrRootOutput.cc::SetPhotDetTime: number of individual photons larger than maxNOptPhotDet (=%d)",maxNOptPhotDet);
         musrErrorMessage::GetInstance()->musrError(WARNING,message,true); // had silent=false and printed all messages (JSL)
     }
+}
+
+void musrRootOutput::FillMaterialEvent(bool aborted) {
+  if (!materialTree) return;
+  materialAborted=aborted ? 1 : 0;
+  materialTree->Fill();
 }

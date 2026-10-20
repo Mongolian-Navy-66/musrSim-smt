@@ -103,6 +103,8 @@ void musrEventAction::EndOfEventAction(const G4Event* evt)  {
 //      G4EventManager::GetEventManager()->KeepTheCurrentEvent();
   }
 
+  myRootOutput->FillMaterialEvent(evt->IsAborted());
+
   // get number of stored trajectories
   G4TrajectoryContainer* trajectoryContainer = evt->GetTrajectoryContainer();
   G4int n_trajectories = 0;

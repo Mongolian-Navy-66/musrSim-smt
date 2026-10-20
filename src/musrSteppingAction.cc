@@ -23,6 +23,7 @@
 
 #include "musrSteppingAction.hh"
 #include "G4SteppingManager.hh"
+#include "G4Material.hh"
 #include "G4UnitsTable.hh"
 #include "G4RunManager.hh"  // needed for the event nr. comparison
 #include "G4Run.hh"         // ---------------||------------------
@@ -91,6 +92,19 @@ void musrSteppingAction::DoAtTheBeginningOfEvent() {
 void musrSteppingAction::UserSteppingAction(const G4Step* aStep)  {
 
   G4Track* aTrack = aStep->GetTrack();
+  if (myRootOutput->MaterialTruthEnabled() && aTrack->GetParentID()==0 &&
+      std::abs(aTrack->GetDefinition()->GetPDGEncoding())==13) {
+    const auto* pre=aStep->GetPreStepPoint(); const auto* post=aStep->GetPostStepPoint();
+    const auto* v0=pre->GetPhysicalVolume(); const auto* v1=post->GetPhysicalVolume();
+    const bool pb0=pre->GetMaterial() && pre->GetMaterial()->GetName()=="G4_Pb";
+    const bool pb1=v1 && post->GetMaterial() && post->GetMaterial()->GetName()=="G4_Pb";
+    const auto& x=post->GetPosition(); const auto& p0=pre->GetMomentum(); const auto& p1=post->GetMomentum();
+    myRootOutput->materialTruth.Observe(aTrack->GetTrackID(),aTrack->GetParentID(),aTrack->GetDefinition()->GetPDGEncoding(),
+      post->GetStepStatus()==fGeomBoundary,pb0,pb1,v0 ? v0->GetName() : "outside",v1 ? v1->GetName() : "outside",
+      {{x.x()/CLHEP::mm,x.y()/CLHEP::mm,x.z()/CLHEP::mm}},
+      {{p0.x()/CLHEP::MeV,p0.y()/CLHEP::MeV,p0.z()/CLHEP::MeV}},
+      {{p1.x()/CLHEP::MeV,p1.y()/CLHEP::MeV,p1.z()/CLHEP::MeV}},post->GetGlobalTime()/CLHEP::ns);
+  }
 
   if (myRootOutput->DiagnosticTruthEnabled() && aTrack->GetCurrentStepNumber()==1 && aTrack->GetDefinition()!=NULL) {
     G4String creatorProcess="initialParticle";

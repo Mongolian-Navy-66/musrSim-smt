@@ -6,6 +6,7 @@
 #include "musrEventAction.hh"
 #include "musrStackingAction.hh"
 #include "musrSteppingAction.hh"
+#include "MaterialTrackingAction.hh"
 #include "musrSteppingVerbose.hh"
 
 #include "cosmicMuonManager.h"
@@ -172,6 +173,7 @@ int main(int argc,char** argv) {
     // Initiate musrStackingAction only if optical photons are required (otherwise not needed)
     if (musrParameters::boolG4OpticalPhotons) runManager->SetUserAction(new musrStackingAction);
     runManager->SetUserAction(new musrSteppingAction);
+    runManager->SetUserAction(new MaterialTrackingAction);
 
     //Initialize G4 kernel
     runManager->Initialize();

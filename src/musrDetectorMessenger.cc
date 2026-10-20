@@ -73,6 +73,10 @@ musrDetectorMessenger::musrDetectorMessenger(musrDetectorConstruction* myDet)
     RunIDSetCmd->SetParameterName("something",false);
     RunIDSetCmd->AvailableForStates(G4State_PreInit,G4State_Idle);
 
+    EventSeedOffsetCmd = new G4UIcmdWithAnInteger("/musr/run/eventSeedOffset",this);
+    EventSeedOffsetCmd->SetParameterName("offset",false);
+    EventSeedOffsetCmd->SetRange("offset>=0");
+    EventSeedOffsetCmd->AvailableForStates(G4State_PreInit,G4State_Idle);
     RandomOptionCmd = new G4UIcmdWithAnInteger("/musr/run/randomOption",this);
     RandomOptionCmd->SetGuidance("Specify the random number generator initialisation");
     RandomOptionCmd->SetGuidance("   0 ... no initialisation (default)");
@@ -115,6 +119,7 @@ musrDetectorMessenger::~musrDetectorMessenger()
     delete Ignore1Cmd;
     delete Ignore2Cmd;
     delete RunIDSetCmd;
+    delete EventSeedOffsetCmd;
     delete RandomOptionCmd;
     delete HowOftenToPrintEventCmd;
     delete RndmEventToSaveSeedsCmd;
@@ -130,6 +135,7 @@ void musrDetectorMessenger::SetNewValue(G4UIcommand* command,G4String newValue) 
     if( command == RunIDSetCmd )
     { (G4RunManager::GetRunManager())->SetRunIDCounter(RunIDSetCmd->GetNewIntValue(newValue));}
 
+    if (command == EventSeedOffsetCmd) musrPrimaryGeneratorAction::materialEventSeedOffset=EventSeedOffsetCmd->GetNewIntValue(newValue);
     if( command == RandomOptionCmd )
     {
         G4int RandomOption=RandomOptionCmd->GetNewIntValue(newValue);

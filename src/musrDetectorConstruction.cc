@@ -1305,6 +1305,10 @@ G4VPhysicalVolume* musrDetectorConstruction::Construct()  {
 	if (strcmp(tmpString2,"false")==0){ musrParameters::storeOnlyEventsWithHits = false; }
       } 
 
+      else if (strcmp(tmpString1,"storeMaterialTruth")==0) {
+        if (strcmp(tmpString2,"true") && strcmp(tmpString2,"false")) ReportGeometryProblem(line);
+        myRootOutput->materialTruth.enabled = !strcmp(tmpString2,"true");
+      }
       else if (strcmp(tmpString1,"storeDiagnosticTruth")==0){
         if (strcmp(tmpString2,"true")==0) {
           musrParameters::storeDiagnosticTruth = true;
