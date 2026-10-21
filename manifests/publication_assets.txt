@@ -1,0 +1,5 @@
+# Exact reviewed artifacts and special inputs; ordinary source files are not listed.
+run/APDpulseShapeFile.txt
+run/APDpulseShapeFile_2011_1e_Z.txt
+run/presentation_2012.txt
+run/run_many_files.tar.gz

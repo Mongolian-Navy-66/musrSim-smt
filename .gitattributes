@@ -4,3 +4,23 @@
 *.cc text eol=lf
 *.hh text eol=lf
 *.yml text eol=lf
+
+# Publication binary assets keep their exact bytes.
+*.sub text eol=lf
+*.root binary
+*.dat binary
+*.bin binary
+*.npz binary
+*.npy binary
+*.h5 binary
+*.hdf5 binary
+*.pdf binary
+*.pptx binary
+*.ppt binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.zip binary
+*.gz binary
+*.7z binary
