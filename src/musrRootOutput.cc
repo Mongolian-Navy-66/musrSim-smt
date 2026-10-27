@@ -235,7 +235,7 @@ void musrRootOutput::BeginOfRunAction() {
       for (std::size_t i=0; i<roiTruth.names.size(); ++i) {
         int matches = 0;
         for (const auto* volume : *store)
-          if (volume && volume->GetName() == roiTruth.volumes[i] &&
+          if (volume && std::string(volume->GetName()) == roiTruth.volumes[i] &&
               volume->GetCopyNo() == roiTruth.copies[i]) ++matches;
         if (matches != 1)
           throw std::runtime_error("ROI physical volume missing or ambiguous: " + roiTruth.volumes[i]);
