@@ -24,6 +24,9 @@
 #include "musrRootOutput.hh"
 #include "G4RunManager.hh"
 #include "G4Run.hh"
+#include "G4PhysicalVolumeStore.hh"
+#include "G4VPhysicalVolume.hh"
+#include <stdexcept>
 #include "musrErrorMessage.hh"
 #include "musrParameters.hh"
 
@@ -226,6 +229,18 @@ void musrRootOutput::BeginOfRunAction() {
         sprintf(RootOutputFileName, "%s/%s%03d.root",rootOutputDirectoryName,rootPrefix,tmpRunNr);
     }
 
+    if (roiTruth.enabled) {
+      if (roiTruth.names.empty()) throw std::runtime_error("ROI truth enabled without configured volumes");
+      const auto* store = G4PhysicalVolumeStore::GetInstance();
+      for (std::size_t i=0; i<roiTruth.names.size(); ++i) {
+        int matches = 0;
+        for (const auto* volume : *store)
+          if (volume && volume->GetName() == roiTruth.volumes[i] &&
+              volume->GetCopyNo() == roiTruth.copies[i]) ++matches;
+        if (matches != 1)
+          throw std::runtime_error("ROI physical volume missing or ambiguous: " + roiTruth.volumes[i]);
+      }
+    }
     rootFile=new TFile(RootOutputFileName,"recreate");
     if (rootFile->IsZombie()) {
         char message[200];
@@ -233,6 +248,20 @@ void musrRootOutput::BeginOfRunAction() {
         musrErrorMessage::GetInstance()->musrError(FATAL,message,false);
     }
     rootTree=new TTree("t1","a simple Tree with simple variables");
+    roiTree=nullptr;
+    if (roiTruth.enabled) {
+      roiTree=new TTree("roiTruth","all generated events, primary muon ROI truth");
+      roiTree->Branch("runID",&runID,"runID/I");
+      roiTree->Branch("eventID",&eventID,"eventID/I");
+      roiTree->Branch("stored",&materialStored,"stored/I");
+      roiTree->Branch("aborted",&materialAborted,"aborted/I");
+      roiTree->Branch("roiName",&roiTruth.names);
+      roiTree->Branch("roiVolume",&roiTruth.volumes);
+      roiTree->Branch("roiCopy",&roiTruth.copies);
+      roiTree->Branch("muonEntered",&roiTruth.entered);
+      roiTree->Branch("muonEdep",&roiTruth.edep);
+      roiTree->Branch("muonDeposit",&roiTruth.deposited);
+    }
     materialTree=nullptr;
     if (MaterialTruthEnabled()) {
       materialTree=new TTree("materialTruth","all generated events, passive primary Pb boundary truth");
@@ -607,6 +636,7 @@ void musrRootOutput::EndOfRunAction() {
     G4cout << "musrRootOutput::EndOfRunAction() - Writing out the Root tree:"<<G4endl;
     rootTree->Write();
     if (materialTree) materialTree->Write();
+    if (roiTree) roiTree->Write();
     if (diagnosticTree!=NULL) diagnosticTree->Write();
     htest1->Write();
     htest2->Write();
@@ -665,6 +695,7 @@ void musrRootOutput::FillEvent() {
 void musrRootOutput::ClearAllRootVariables() {
     truthPlanes.Reset();
     materialTruth.Reset();
+    roiTruth.Reset();
     materialStored=0; materialAborted=0; materialTransportSeed=-1;
     parID = 0;
     parIniPosX = parIniPosY = parIniPosZ = 0;
@@ -1097,6 +1128,12 @@ void musrRootOutput::SetPhotDetTime(G4double time) {
         sprintf(message,"musrRootOutput.cc::SetPhotDetTime: number of individual photons larger than maxNOptPhotDet (=%d)",maxNOptPhotDet);
         musrErrorMessage::GetInstance()->musrError(WARNING,message,true); // had silent=false and printed all messages (JSL)
     }
+}
+
+void musrRootOutput::FillROIEvent(bool aborted) {
+  if (!roiTree) return;
+  materialAborted=aborted ? 1 : 0;
+  roiTree->Fill();
 }
 
 void musrRootOutput::FillMaterialEvent(bool aborted) {

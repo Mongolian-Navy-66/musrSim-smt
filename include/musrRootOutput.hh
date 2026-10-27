@@ -30,6 +30,7 @@
 #include "rootEventSelector.hh"
 #include "PrimaryMuonPlaneTruth.hh"
 #include "MaterialBoundaryTruth.hh"
+#include "ROITruth.hh"
 //  ROOT
 #include "TFile.h"
 #include "TTree.h"
@@ -59,6 +60,8 @@ public:
     void EndOfRunAction();
     void FillEvent();
     MaterialBoundaryTruth materialTruth;
+    ROITruth roiTruth;
+    void FillROIEvent(bool aborted);
     bool MaterialTruthEnabled() const { return materialTruth.enabled; }
     void SetMaterialTransportSeed(long seed) { materialTransportSeed=seed; }
     void FillMaterialEvent(bool aborted);
@@ -331,6 +334,7 @@ private:
 
     // Variables common to the whole event:
     TTree* materialTree = nullptr;
+    TTree* roiTree = nullptr;
     Int_t materialStored = 0, materialAborted = 0;
     Long64_t materialTransportSeed = -1;
     TTree* diagnosticTree;

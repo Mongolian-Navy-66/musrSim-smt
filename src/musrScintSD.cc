@@ -551,8 +551,8 @@ void musrScintSD::EndOfEvent(G4HCofThisEvent*) {
         }  // end of the for loop over the hits
 
         // Sort the signals according to the energy (in decreasing order)
-        std::map<G4double,G4int> mySignalMapping;
-        std::map<G4double,G4int>::iterator itt;
+        std::multimap<G4double,G4int> mySignalMapping;
+        std::multimap<G4double,G4int>::iterator itt;
         for (G4int i=0; i<nSignals; i++) {
             mySignalMapping.insert ( std::pair<G4double,G4int>(-det_edep[i],i) );
         }

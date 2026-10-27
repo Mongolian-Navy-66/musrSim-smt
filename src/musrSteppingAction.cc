@@ -92,6 +92,16 @@ void musrSteppingAction::DoAtTheBeginningOfEvent() {
 void musrSteppingAction::UserSteppingAction(const G4Step* aStep)  {
 
   G4Track* aTrack = aStep->GetTrack();
+  if (myRootOutput->roiTruth.enabled && aTrack->GetDefinition()) {
+    const auto* pre = aStep->GetPreStepPoint();
+    const auto* post = aStep->GetPostStepPoint();
+    const auto* before = pre->GetPhysicalVolume();
+    const auto* after = post->GetPhysicalVolume();
+    myRootOutput->roiTruth.Observe(aTrack->GetParentID(), aTrack->GetDefinition()->GetPDGEncoding(),
+        before ? before->GetName() : "", before ? before->GetCopyNo() : -1,
+        after ? after->GetName() : "", after ? after->GetCopyNo() : -1,
+        post->GetStepStatus() == fGeomBoundary, aStep->GetTotalEnergyDeposit()/CLHEP::MeV);
+  }
   if (myRootOutput->MaterialTruthEnabled() && aTrack->GetParentID()==0 &&
       std::abs(aTrack->GetDefinition()->GetPDGEncoding())==13) {
     const auto* pre=aStep->GetPreStepPoint(); const auto* post=aStep->GetPostStepPoint();

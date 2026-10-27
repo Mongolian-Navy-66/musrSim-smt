@@ -65,10 +65,17 @@ The lost-source `musrSim_upgrade` executable may have used a different EcoMug ve
 
 ## Companion analysis and validation
 
-The separate `muography_shine` analysis project contains sim4/sim5 macros, run scripts, `analysis/extract_truth_hits.cpp`, and `analysis/validate_layer_position.py`. Its scripts require `MUSRSIM_BIN` to be the absolute path of `build/musrSim_mst` and place new ROOT files in `data_plane_truth/`, leaving the old `data/` directory intact. The extractor writes aligned hits, initial truth, crossings, and per-file generation-count tables keyed by `Entry/SourceFile/SourceEntry/EventID`.
-
-Run a small sim4 and sim5 pilot first. Check `t1->Print()`, four reference `z` values, missing and repeated crossings, hit branches, STL geometry, and row identities. Validate a bent trajectory against actual downstream steps. Then compare generator distributions, run the full sample, and report four methods only on their common successful `Entry` subset. `det_xyz_ideal` is an MC-coordinate benchmark; `edep_strip_proxy` is a strip-energy readout proxy. The two legacy fit methods remain historical baselines. The companion project's `analysis/README_layer_position_validation.md` gives the exact sequence.
+The independent `muography_shine` project provides the reconstruction and PoCA entry point `analysis/reconstruct.py`, with XYZ and Edep methods and optional `roiTruth` event input. See its README for the Run300 geometry, input fields and validation commands.
 
 ## Credits and licenses
 
 The repository retains upstream Git history and copyright notices. GPL-covered musrSim and EcoMug portions are distributed under GPLv3 because EcoMug v2.1 is GPLv3 and musrSim headers permit GPLv2 or later; other third-party files retain their own notices. See [`NOTICE.md`](NOTICE.md), the top-level [`LICENSE`](LICENSE), upstream [`COPYING`](COPYING), and the licenses in `third_party/` and `licenses/`. This product includes software developed by Members of the Geant4 Collaboration ( http://cern.ch/geant4 ).
+
+## General ROI event truth
+
+Register an exact physical volume instance and enable recording before the run:
+
+    /musr/command roiTruthVolume ECAL phys_LYSO_Crystal 0
+    /musr/command storeROITruth true
+
+The last argument is the Geant4 physical-volume copy number. Labels and volume instances must be unique; an enabled target must match exactly one volume. The default is off. When enabled, roiTruth contains one row per generated event: runID, eventID, stored, aborted, plus vectors roiName, roiVolume, roiCopy, muonEntered, muonEdep, muonDeposit. Edep is in MeV and accumulates only primary muons with ParentID=0 and PDG ±13. An aborted event has incomplete truth. This passive truth is independent of PoCA and does not simulate SiPM response. The existing Pb materialTruth switch is independent.

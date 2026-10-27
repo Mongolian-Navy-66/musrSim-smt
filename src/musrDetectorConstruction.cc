@@ -1305,6 +1305,17 @@ G4VPhysicalVolume* musrDetectorConstruction::Construct()  {
 	if (strcmp(tmpString2,"false")==0){ musrParameters::storeOnlyEventsWithHits = false; }
       } 
 
+      else if (strcmp(tmpString1,"storeROITruth")==0) {
+        if (strcmp(tmpString2,"true") && strcmp(tmpString2,"false")) ReportGeometryProblem(line);
+        myRootOutput->roiTruth.enabled = !strcmp(tmpString2,"true");
+      }
+      else if (strcmp(tmpString1,"roiTruthVolume")==0) {
+        char label[1000], physical[1000]; int copy;
+        if (sscanf(&line[0], "%*s %*s %999s %999s %d", label, physical, &copy) != 3)
+          ReportGeometryProblem(line);
+        try { myRootOutput->roiTruth.Add(label, physical, copy); }
+        catch (const std::invalid_argument&) { ReportGeometryProblem(line); }
+      }
       else if (strcmp(tmpString1,"storeMaterialTruth")==0) {
         if (strcmp(tmpString2,"true") && strcmp(tmpString2,"false")) ReportGeometryProblem(line);
         myRootOutput->materialTruth.enabled = !strcmp(tmpString2,"true");

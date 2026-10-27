@@ -65,10 +65,17 @@ stepping action 只处理 `ParentID == 0`、PDG 为 `±13`、且满足 `z_pre > 
 
 ## 配套分析与验收
 
-独立的 `muography_shine` 分析项目提供 sim4/sim5 宏、运行脚本、`analysis/extract_truth_hits.cpp` 和 `analysis/validate_layer_position.py`。脚本要求 `MUSRSIM_BIN` 指向 `build/musrSim_mst` 的绝对路径；新 ROOT 放入 `data_plane_truth/`，保留旧 `data/`。提取器按 `Entry/SourceFile/SourceEntry/EventID` 对齐导出 hits、初始 truth、交点和每文件生成数。
-
-先各跑少量 sim4、sim5：核对 `t1->Print()`、四层参考 `z`、缺失与重复计数、hit 分支、STL 几何及事件关联；用真实折线轨迹检查下游交点。再比较生成分布、运行全量样本，并只在四种方法共同成功的 `Entry` 子集上对照。`det_xyz_ideal` 是理想 MC 坐标基准；`edep_strip_proxy` 是条级 Edep 读出代理；两种遗留拟合方法仅作历史对照。具体命令见配套项目的 `analysis/README_layer_position_validation.md`。
+独立的 `muography_shine` 项目通过 `analysis/reconstruct.py` 提供 XYZ、Edep 重建与 PoCA，可选择以 `roiTruth` 作为事件全集。Run300 几何、输入字段及验证命令见该项目 README。
 
 ## 致谢与许可
 
 本仓库保留上游 Git 历史及版权声明。由于 EcoMug v2.1 为 GPLv3，而 musrSim 相关文件允许 GPLv2 或更新版本，受 GPL 约束的 musrSim 与 EcoMug 部分按 GPLv3 条款分发；其他第三方文件保留各自许可。详见 [`NOTICE.md`](NOTICE.md)、顶层 [`LICENSE`](LICENSE)、上游 [`COPYING`](COPYING)、`third_party/` 与 `licenses/`。本产品包含由 Geant4 Collaboration 成员开发的软件（http://cern.ch/geant4）。
+
+## 通用 ROI 事件真值
+
+在宏中登记具体物理体积，并在运行前启用记录：
+
+    /musr/command roiTruthVolume ECAL phys_LYSO_Crystal 0
+    /musr/command storeROITruth true
+
+第三个参数为 Geant4 physical volume copy number。标签及体积实例必须唯一，启用时目标必须恰好匹配一个物理体积。默认关闭，不创建 roiTruth 树。启用时该树每个生成事件一行，包含 runID、eventID、stored、aborted 及按配置顺序排列的 roiName、roiVolume、roiCopy、muonEntered、muonEdep、muonDeposit。Edep 单位 MeV，仅累加 ParentID=0 且 PDG 为 ±13 的主 μ 在目标体积中的沉积；进入但无沉积与未进入可以区分。aborted=1 的事件应视为真值不完整。真值不依赖 PoCA，也不是 SiPM 读出响应。原有 Pb materialTruth 由其开关独立控制。
