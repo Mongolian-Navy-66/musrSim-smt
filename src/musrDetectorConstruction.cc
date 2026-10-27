@@ -1698,6 +1698,16 @@ void musrDetectorConstruction::DefineMaterials()
   Myl->AddElement(H, natoms= 8);
   Myl->AddElement(O, natoms= 4);
 
+  // Run300 nominal LYSO, OpenGATE GateMaterials.db generic LYSO.
+  // https://github.com/OpenGATE/opengate/blob/master/opengate/contrib/GateMaterials.db
+  // Mass fractions sum to 1.000000001 in the source; normalize explicitly.
+  const G4double lysoFractionSum = 0.714467891 + 0.04033805 + 0.063714272 + 0.181479788;
+  G4Material* lyso = new G4Material("LYSO", 7.36*CLHEP::g/CLHEP::cm3, 4);
+  lyso->AddElement(man->FindOrBuildElement("Lu"), 0.714467891/lysoFractionSum);
+  lyso->AddElement(man->FindOrBuildElement("Y"),  0.04033805/lysoFractionSum);
+  lyso->AddElement(Si, 0.063714272/lysoFractionSum);
+  lyso->AddElement(O,  0.181479788/lysoFractionSum);
+
   // Brass
   G4Material* brass = new G4Material("Brass", density= 8.40*CLHEP::g/CLHEP::cm3, ncomponents=2);
   brass -> AddElement(Zn, fractionmass = 30*CLHEP::perCent);
