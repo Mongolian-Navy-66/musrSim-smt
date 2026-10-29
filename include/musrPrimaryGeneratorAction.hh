@@ -39,6 +39,10 @@ class G4Event;
 class musrDetectorConstruction;
 class musrPrimaryGeneratorMessenger;
 class EcoMug;
+#ifdef ENABLE_CRY
+class CRYSetup;
+class CRYGenerator;
+#endif
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo....
 
@@ -120,6 +124,10 @@ class musrPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     G4double xMaxSource, yMaxSource, zMaxSource;         //P.B. 15 Dec 2009
     G4double p0, pSigma, pMinAllowed, pMaxAllowed;
     G4bool   if_cosmic;     // Meng Lv Aug 5 2022
+#ifdef ENABLE_CRY
+    CRYSetup* crySetup = nullptr;
+    CRYGenerator* cryGenerator = nullptr;
+#endif
     EcoMug*  ecoMug;
     G4bool   useEcoMug;
     G4bool   ecoMugShapeConfigured;
@@ -149,6 +157,8 @@ class musrPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     void     swapTheAxisInTurtle(float& x_x, float& x_xprime, float& y_y, float& y_yprime);
 
 public: 
+    static bool cryEnabled;
+    static G4String cryConfigFile;
     static long materialEventSeedOffset;
     static G4bool setRandomNrSeedAccordingEventNr;
     static G4bool setRandomNrSeedFromFile;

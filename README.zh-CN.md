@@ -79,3 +79,9 @@ stepping action 只处理 `ParentID == 0`、PDG 为 `±13`、且满足 `z_pre > 
     /musr/command storeROITruth true
 
 第三个参数为 Geant4 physical volume copy number。标签及体积实例必须唯一，启用时目标必须恰好匹配一个物理体积。默认关闭，不创建 roiTruth 树。启用时该树每个生成事件一行，包含 runID、eventID、stored、aborted 及按配置顺序排列的 roiName、roiVolume、roiCopy、muonEntered、muonEdep、muonDeposit。Edep 单位 MeV，仅累加 ParentID=0 且 PDG 为 ±13 的主 μ 在目标体积中的沉积；进入但无沉积与未进入可以区分。aborted=1 的事件应视为真值不完整。真值不依赖 PoCA，也不是 SiPM 读出响应。原有 Pb materialTruth 由其开关独立控制。
+
+## CRY 全宇宙线簇射源
+
+CRY 1.7 是外部依赖，使用独立构建目录配置 `cmake -S . -B build_cry -DENABLE_CRY=ON -DCRY_ROOT=/home/liyifei/cry/cry_v1.7`，随后编译 `build_cry`。宏中通过 `/musr/command useCRY true` 和 `/musr/command cryConfig cry_config.txt` 启用；CRY 模式采用 Geant4 `FTFP_BERT_HP`，每个事件包含 CRY 返回的完整粒子簇射。配置文件中的粒子类型、纬度、海拔、日期和源平面须记录在结果中。CRY 数据目录由构建配置指定。
+
+启用时 `cryTruth` 每个生成事件一行：`runID`、`eventID`、`stored`、`aborted`、`transportSeed`、`elapsedSeconds`，以及每个主粒子的 `pdg`、`trackID`、动能、位置、方向、时间；单位分别为 MeV、mm 和 s。`roiEntered` 和 `roiEdepMeV` 以主粒子序号乘 `roiCount` 加 ROI 序号展平，仅统计主缪子，能量单位 MeV。`roiTruth` 仍提供事件级主缪子合计；中止事件真值不完整。多主粒子事件的逐粒子信息应使用 `cryTruth`，不能把 `t1` 的单主粒子字段视为完整簇射。

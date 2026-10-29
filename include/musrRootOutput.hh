@@ -31,6 +31,7 @@
 #include "PrimaryMuonPlaneTruth.hh"
 #include "MaterialBoundaryTruth.hh"
 #include "ROITruth.hh"
+#include "CryTruth.hh"
 //  ROOT
 #include "TFile.h"
 #include "TTree.h"
@@ -61,6 +62,8 @@ public:
     void FillEvent();
     MaterialBoundaryTruth materialTruth;
     ROITruth roiTruth;
+    CryTruth cryTruth;
+    void FillCryEvent(bool aborted);
     void FillROIEvent(bool aborted);
     bool MaterialTruthEnabled() const { return materialTruth.enabled; }
     void SetMaterialTransportSeed(long seed) { materialTransportSeed=seed; }
@@ -335,6 +338,7 @@ private:
     // Variables common to the whole event:
     TTree* materialTree = nullptr;
     TTree* roiTree = nullptr;
+    TTree* cryTree = nullptr;
     Int_t materialStored = 0, materialAborted = 0;
     Long64_t materialTransportSeed = -1;
     TTree* diagnosticTree;
@@ -405,7 +409,11 @@ public:
 private:
     // Variables for the activity inside a given detector
 public:
-    static const Int_t det_nMax=100;    // must be by 1 higher than the real number of detector "hits", because
+#ifdef ENABLE_CRY
+    static const Int_t det_nMax=1024;
+#else
+    static const Int_t det_nMax=100;
+#endif
     // else the detector nr. 0 is counted (0 is used if no
     // SensDetectorMapping correspond to a given logical volume).
 private:

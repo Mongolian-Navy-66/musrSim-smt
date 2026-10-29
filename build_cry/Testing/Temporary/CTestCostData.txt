@@ -1,0 +1,6 @@
+primary_muon_plane_truth 5 0.00105611
+ecomug_api 5 0.0288316
+material_boundary_truth 5 0.0382743
+roi_truth 5 0.000972797
+cry_truth 4 0.00122562
+---

@@ -36,7 +36,11 @@ include_directories(${PROJECT_SOURCE_DIR}/third_party/EcoMug)
 # Locate sources and headers for this project
 # NB: headers are included so they will show up in IDEs
 #
+option(ENABLE_CRY "Enable CRY cosmic shower source" OFF)
 file(GLOB sources ${PROJECT_SOURCE_DIR}/src/*.cc ${PROJECT_SOURCE_DIR}/src/*.cpp)
+if(ENABLE_CRY)
+  list(REMOVE_ITEM sources ${PROJECT_SOURCE_DIR}/src/FTFP_BERT.cc ${PROJECT_SOURCE_DIR}/src/G4EmExtraPhysics.cc)
+endif()
 file(GLOB headers ${PROJECT_SOURCE_DIR}/include/*.hh ${PROJECT_SOURCE_DIR}/include/*.h)
 
 #----------------------------------------------------------------------------
@@ -44,6 +48,18 @@ file(GLOB headers ${PROJECT_SOURCE_DIR}/include/*.hh ${PROJECT_SOURCE_DIR}/inclu
 #
 add_executable(musrSim_mst musrSim.cc ${sources} ${headers})
 target_link_libraries(musrSim_mst ${Geant4_LIBRARIES} ${ROOT_LIBRARIES})
+set(CRY_ROOT "/home/liyifei/cry/cry_v1.7" CACHE PATH "CRY 1.7 source and data")
+if(ENABLE_CRY)
+  if(NOT EXISTS "${CRY_ROOT}/src/CRYGenerator.h" OR NOT EXISTS "${CRY_ROOT}/data/cosmics_0.data")
+    message(FATAL_ERROR "CRY source or sea-level data missing under CRY_ROOT")
+  endif()
+  file(GLOB CRY_SOURCES "${CRY_ROOT}/src/*.cc")
+  add_library(cry_source STATIC ${CRY_SOURCES})
+  target_include_directories(cry_source PUBLIC "${CRY_ROOT}/src")
+  target_compile_definitions(musrSim_mst PRIVATE ENABLE_CRY CRY_DATA_DIR="${CRY_ROOT}/data")
+  target_link_libraries(musrSim_mst cry_source)
+endif()
+
 #----------------------------------------------------------------------------
 # Copy all scripts to the build directory, i.e. the directory in which we
 # build B1. This is so that we can run the executable directly because it
@@ -94,4 +110,10 @@ add_executable(roi_truth_test tests/roi_truth_test.cc)
 target_compile_options(roi_truth_test PRIVATE -UNDEBUG)
 if(BUILD_PLANE_TRUTH_TESTS)
   add_test(NAME roi_truth COMMAND roi_truth_test)
+endif()
+
+add_executable(cry_truth_test tests/cry_truth_test.cc)
+target_compile_options(cry_truth_test PRIVATE -UNDEBUG)
+if(BUILD_PLANE_TRUTH_TESTS)
+  add_test(NAME cry_truth COMMAND cry_truth_test)
 endif()

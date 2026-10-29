@@ -1,5 +1,8 @@
 #include "musrDetectorConstruction.hh"
 #include "musrPhysicsList.hh"
+#ifdef ENABLE_CRY
+#include "FTFP_BERT_HP.hh"
+#endif
 //#include "FTFP_BERT.hh"
 #include "musrPrimaryGeneratorAction.hh"
 #include "musrRunAction.hh"
@@ -98,6 +101,22 @@ int main(int argc,char** argv) {
     if(argc > 3) random_seed_offset = atoi(argv[3]);
     // Read from macro to customize output ROOT file name
     // Only if the name not specified in argv[2]
+    {
+        std::ifstream cryInput(steeringFileName.c_str());
+        std::string record, a, b, c;
+        bool usesLegacyEmExtra=false;
+        while (std::getline(cryInput,record)) {
+            std::istringstream fields(record);
+            if (!(fields >> a >> b >> c) || a!="/musr/command") continue;
+            if (b=="G4EmExtraPhysics") usesLegacyEmExtra=true;
+            if (b=="useCRY") {
+                if (c!="true" && c!="false") throw std::runtime_error("useCRY requires true or false");
+                musrPrimaryGeneratorAction::cryEnabled=(c=="true");
+            } else if (b=="cryConfig") musrPrimaryGeneratorAction::cryConfigFile=c;
+        }
+        if (musrPrimaryGeneratorAction::cryEnabled && usesLegacyEmExtra)
+            throw std::runtime_error("CRY mode does not support legacy G4EmExtraPhysics macro commands");
+    }
     std::ifstream fin(steeringFileName.c_str());
     std::string line;
     while (!(argc>2) && std::getline(fin, line)){
@@ -134,6 +153,7 @@ int main(int argc,char** argv) {
     }
 
     musrRootOutput* myRootOutput = new musrRootOutput(name);
+    myRootOutput->cryTruth.enabled=musrPrimaryGeneratorAction::cryEnabled;
 
 // The following command is needed to cope with the problem of 
 // "Error in <TPluginManager::FindHandler>: Cannot find plugin handler for TVirtualStreamerInfo! 
@@ -156,7 +176,13 @@ int main(int argc,char** argv) {
     }
     musrDetectorConstruction* musrdetector = new musrDetectorConstruction(steeringFileName,random_seed_offset, random_seed);
     runManager->SetUserInitialization(musrdetector);
-    runManager->SetUserInitialization(new musrPhysicsList);
+    if (musrPrimaryGeneratorAction::cryEnabled) {
+#ifdef ENABLE_CRY
+        runManager->SetUserInitialization(new FTFP_BERT_HP);
+#else
+        throw std::runtime_error("CRY requested but binary lacks ENABLE_CRY");
+#endif
+    } else runManager->SetUserInitialization(new musrPhysicsList);
 //    runManager->SetUserInitialization(new FTFP_BERT(1,steeringFileName));
 
 #ifdef G4VIS_USE

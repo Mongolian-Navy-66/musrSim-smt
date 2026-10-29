@@ -101,6 +101,11 @@ void musrSteppingAction::UserSteppingAction(const G4Step* aStep)  {
         before ? before->GetName() : "", before ? before->GetCopyNo() : -1,
         after ? after->GetName() : "", after ? after->GetCopyNo() : -1,
         post->GetStepStatus() == fGeomBoundary, aStep->GetTotalEnergyDeposit()/CLHEP::MeV);
+    if (myRootOutput->cryTruth.enabled)
+      myRootOutput->cryTruth.Observe(aTrack->GetTrackID(),aTrack->GetParentID(),aTrack->GetDefinition()->GetPDGEncoding(),
+          before ? before->GetName() : "", before ? before->GetCopyNo() : -1,
+          after ? after->GetName() : "", after ? after->GetCopyNo() : -1,
+          post->GetStepStatus() == fGeomBoundary,aStep->GetTotalEnergyDeposit()/CLHEP::MeV,myRootOutput->roiTruth);
   }
   if (myRootOutput->MaterialTruthEnabled() && aTrack->GetParentID()==0 &&
       std::abs(aTrack->GetDefinition()->GetPDGEncoding())==13) {

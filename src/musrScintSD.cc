@@ -478,6 +478,8 @@ void musrScintSD::EndOfEvent(G4HCofThisEvent*) {
             if (!signalAssigned) {    // The hit does not belong to any existing signal --> create a new signal.
                 // Check, whether the maximum number of signals was not exceeded:
                 if ( nSignals >= (det_IDmax-1) ) {
+                    if (myRootOutput->cryTruth.enabled)
+                        throw std::runtime_error("CRY event exceeds detector signal capacity");
                     char message[200];
                     sprintf(message,"musrScintSD.cc::EndOfEvent(): number of signals exceeds maximal allowed value.");
                     musrErrorMessage::GetInstance()->musrError(SERIOUS,message,true);

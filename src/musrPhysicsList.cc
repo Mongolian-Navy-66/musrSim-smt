@@ -401,7 +401,7 @@ void musrPhysicsList::ConstructEM()
 	  }
 
       // Meng Lv: Add mu- capture process. 27-05-23
-      else if (stringProcessName=="G4MuonMinusCapture")            pManager->AddRestProcess(new G4MuonMinusCapture);
+      else if (stringProcessName=="G4MuonMinusCapture")            pManager->AddRestProcess(new musrMuonMinusCapture);
 	  // cks:  musrMuScatter could be uncommented here, but testing is needed, because Toni has some strange comments
 	  //       in his original "musrPhysicsList.cc about implementing musrMuScatter.
 	  //	  else if (stringProcessName=="musrMuScatter")       pManager->AddProcess(new musrMuScatter,nr1,nr2,nr3);

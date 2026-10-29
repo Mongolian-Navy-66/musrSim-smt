@@ -55,7 +55,7 @@
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo....
 
-G4MuonMinusCapture::G4MuonMinusCapture(G4HadronicInteraction* hiptr)
+musrMuonMinusCapture::musrMuonMinusCapture(G4HadronicInteraction* hiptr)
   : G4HadronStoppingProcess ("muMinusCaptureAtRest")
 {
   SetBoundDecay(new G4MuonMinusBoundDecay()); // Owned by InteractionRegistry
@@ -67,19 +67,19 @@ G4MuonMinusCapture::G4MuonMinusCapture(G4HadronicInteraction* hiptr)
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo....
 
-G4MuonMinusCapture::~G4MuonMinusCapture()
+musrMuonMinusCapture::~musrMuonMinusCapture()
 {}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo....
 
-G4bool G4MuonMinusCapture::IsApplicable(const G4ParticleDefinition& p)
+G4bool musrMuonMinusCapture::IsApplicable(const G4ParticleDefinition& p)
 {
   return (&p == G4MuonMinus::MuonMinus());
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo....
 
-void G4MuonMinusCapture::ProcessDescription(std::ostream& outFile) const
+void musrMuonMinusCapture::ProcessDescription(std::ostream& outFile) const
 {
   outFile << "Stopping of mu- using default element selector, EM cascade"
           << " sampling and bound decay sampling.\n"

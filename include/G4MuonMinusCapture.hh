@@ -51,13 +51,13 @@
 
 class G4HadronicInteraction;
 
-class G4MuonMinusCapture : public G4HadronStoppingProcess
+class musrMuonMinusCapture : public G4HadronStoppingProcess
 {
 public:
 
-  explicit G4MuonMinusCapture(G4HadronicInteraction* hiptr=0);
+  explicit musrMuonMinusCapture(G4HadronicInteraction* hiptr=0);
 
-  ~G4MuonMinusCapture();
+  ~musrMuonMinusCapture();
 
   G4bool IsApplicable(const G4ParticleDefinition&);
 
@@ -66,8 +66,8 @@ public:
 private:
 
   // hide assignment operator as private
-  G4MuonMinusCapture& operator=(const G4MuonMinusCapture &right);
-  G4MuonMinusCapture(const G4MuonMinusCapture& );
+  musrMuonMinusCapture& operator=(const musrMuonMinusCapture &right);
+  musrMuonMinusCapture(const musrMuonMinusCapture& );
 
 };
 

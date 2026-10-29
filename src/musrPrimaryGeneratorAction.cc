@@ -43,12 +43,24 @@
 #include "EcoMug.h"
 #include "MaterialBoundaryTruth.hh"
 #include "G4Exception.hh"
+#ifdef ENABLE_CRY
+#include "CRYSetup.h"
+#include "CRYGenerator.h"
+#include "CRYParticle.h"
+#include "G4PrimaryVertex.hh"
+#include "G4PrimaryParticle.hh"
+#include <fstream>
+#include <iterator>
+static double CryRandom() { return G4UniformRand(); }
+#endif
 #include <array>
 #include <cmath>
 #include <cstdint>
 #include <sstream>
 
 
+bool musrPrimaryGeneratorAction::cryEnabled=false;
+G4String musrPrimaryGeneratorAction::cryConfigFile="cry_config.txt";
 long musrPrimaryGeneratorAction::materialEventSeedOffset=-1;
 G4bool musrPrimaryGeneratorAction::setRandomNrSeedAccordingEventNr=0;
 G4bool musrPrimaryGeneratorAction::setRandomNrSeedFromFile=0;
@@ -116,6 +128,10 @@ musrPrimaryGeneratorAction::musrPrimaryGeneratorAction(
 
 musrPrimaryGeneratorAction::~musrPrimaryGeneratorAction()
 {
+#ifdef ENABLE_CRY
+  delete cryGenerator;
+  delete crySetup;
+#endif
   delete ecoMug;
   if (musrParameters::boolG4GeneralParticleSource) {delete  particleSource;}
   else {delete particleGun;}
@@ -201,6 +217,52 @@ void musrPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
   // Set or read the seeds of random number generator 
   boolPrintInfoAboutGeneratedParticles=false;
   SetOrReadTheRandomNumberSeeds(anEvent);
+
+  if (cryEnabled) {
+#ifdef ENABLE_CRY
+    if (!cryGenerator) {
+      std::ifstream input(cryConfigFile.c_str());
+      if (!input) throw std::runtime_error("cannot open CRY configuration: " + std::string(cryConfigFile));
+      std::string settings, token;
+      while (input >> token) settings += token + " ";
+      crySetup=new CRYSetup(settings, CRY_DATA_DIR);
+      crySetup->setRandomFunction(&CryRandom);
+      cryGenerator=new CRYGenerator(crySetup);
+    }
+    std::vector<CRYParticle*> particles;
+    cryGenerator->genEvent(&particles);
+    if (particles.empty() || particles.size()>=1000000) throw std::runtime_error("empty or truncated CRY shower");
+    for (auto* particle : particles) {
+      auto* definition=G4ParticleTable::GetParticleTable()->FindParticle(particle->PDGid());
+      if (!definition) throw std::runtime_error("CRY particle PDG is not available in Geant4");
+      const G4ThreeVector position((356.+particle->x()*1000.)*CLHEP::mm,
+          (503.+particle->y()*1000.)*CLHEP::mm,(1600.+particle->z()*1000.)*CLHEP::mm);
+      if (std::abs(position.x())>=2000*CLHEP::mm || std::abs(position.y())>=2000*CLHEP::mm ||
+          std::abs(position.z())>=2000*CLHEP::mm) throw std::runtime_error("CRY source outside world");
+      const G4ThreeVector direction(particle->u(),particle->v(),particle->w());
+      const int index=myRootOutput->cryTruth.Add(particle->PDGid(),particle->ke(),position.x()/CLHEP::mm,
+          position.y()/CLHEP::mm,position.z()/CLHEP::mm,particle->u(),particle->v(),particle->w(),particle->t());
+      particleGun->SetParticleDefinition(definition);
+      particleGun->SetParticleEnergy(particle->ke()*CLHEP::MeV);
+      particleGun->SetParticlePosition(position); particleGun->SetParticleMomentumDirection(direction);
+      particleGun->SetParticleTime(particle->t()*CLHEP::second);
+      particleGun->GeneratePrimaryVertex(anEvent);
+      anEvent->GetPrimaryVertex(anEvent->GetNumberOfPrimaryVertex()-1)->GetPrimary()->SetUserInformation(new CryPrimaryInfo(index));
+      if (particles.size()==1) {
+        const double momentum=std::sqrt(particle->ke()*(particle->ke()+2.*definition->GetPDGMass()/CLHEP::MeV));
+        myRootOutput->SetPrimaryParticleTruth(particle->PDGid(),position.x()/CLHEP::mm,position.y()/CLHEP::mm,
+            position.z()/CLHEP::mm,momentum*particle->u(),momentum*particle->v(),momentum*particle->w());
+      }
+      delete particle;
+    }
+    myRootOutput->cryTruth.elapsed=cryGenerator->timeSimulated();
+    ++numberOfGeneratedEvents;
+    myRootOutput->StoreGeantParameter(7,float(numberOfGeneratedEvents));
+    return;
+#else
+    throw std::runtime_error("CRY requested but binary was built without ENABLE_CRY");
+#endif
+  }
 
   // If radioactive source is used, use  G4GeneralParticleSource :
   if (musrParameters::boolG4GeneralParticleSource) {

@@ -262,6 +262,22 @@ void musrRootOutput::BeginOfRunAction() {
       roiTree->Branch("muonEdep",&roiTruth.edep);
       roiTree->Branch("muonDeposit",&roiTruth.deposited);
     }
+    cryTree=nullptr;
+    if (cryTruth.enabled) {
+      cryTree=new TTree("cryTruth","all generated CRY shower events");
+      cryTree->Branch("runID",&runID,"runID/I"); cryTree->Branch("eventID",&eventID,"eventID/I");
+      cryTree->Branch("stored",&materialStored,"stored/I"); cryTree->Branch("aborted",&materialAborted,"aborted/I");
+      cryTree->Branch("elapsedSeconds",&cryTruth.elapsed,"elapsedSeconds/D");
+      cryTree->Branch("transportSeed",&materialTransportSeed,"transportSeed/L");
+      cryTree->Branch("roiCount",&cryTruth.roiCount,"roiCount/I");
+      cryTree->Branch("nPrimaryMuon",&cryTruth.nMuon,"nPrimaryMuon/I");
+      cryTree->Branch("pdg",&cryTruth.pdg); cryTree->Branch("trackID",&cryTruth.trackID);
+      cryTree->Branch("kineticMeV",&cryTruth.energy); cryTree->Branch("xMm",&cryTruth.x);
+      cryTree->Branch("yMm",&cryTruth.y); cryTree->Branch("zMm",&cryTruth.z);
+      cryTree->Branch("dirX",&cryTruth.u); cryTree->Branch("dirY",&cryTruth.v); cryTree->Branch("dirZ",&cryTruth.w);
+      cryTree->Branch("timeSeconds",&cryTruth.time); cryTree->Branch("roiEntered",&cryTruth.roiEntered);
+      cryTree->Branch("roiEdepMeV",&cryTruth.roiEdep);
+    }
     materialTree=nullptr;
     if (MaterialTruthEnabled()) {
       materialTree=new TTree("materialTruth","all generated events, passive primary Pb boundary truth");
@@ -637,6 +653,7 @@ void musrRootOutput::EndOfRunAction() {
     rootTree->Write();
     if (materialTree) materialTree->Write();
     if (roiTree) roiTree->Write();
+    if (cryTree) cryTree->Write();
     if (diagnosticTree!=NULL) diagnosticTree->Write();
     htest1->Write();
     htest2->Write();
@@ -696,6 +713,7 @@ void musrRootOutput::ClearAllRootVariables() {
     truthPlanes.Reset();
     materialTruth.Reset();
     roiTruth.Reset();
+    cryTruth.Reset(roiTruth.names.size());
     materialStored=0; materialAborted=0; materialTransportSeed=-1;
     parID = 0;
     parIniPosX = parIniPosY = parIniPosZ = 0;
@@ -1129,6 +1147,8 @@ void musrRootOutput::SetPhotDetTime(G4double time) {
         musrErrorMessage::GetInstance()->musrError(WARNING,message,true); // had silent=false and printed all messages (JSL)
     }
 }
+
+void musrRootOutput::FillCryEvent(bool aborted) { materialAborted=aborted ? 1 : 0; if (cryTree) cryTree->Fill(); }
 
 void musrRootOutput::FillROIEvent(bool aborted) {
   if (!roiTree) return;

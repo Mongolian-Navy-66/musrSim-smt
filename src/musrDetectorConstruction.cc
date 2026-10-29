@@ -1305,6 +1305,8 @@ G4VPhysicalVolume* musrDetectorConstruction::Construct()  {
 	if (strcmp(tmpString2,"false")==0){ musrParameters::storeOnlyEventsWithHits = false; }
       } 
 
+      else if (strcmp(tmpString1,"useCRY")==0 || strcmp(tmpString1,"cryConfig")==0) {}
+
       else if (strcmp(tmpString1,"storeROITruth")==0) {
         if (strcmp(tmpString2,"true") && strcmp(tmpString2,"false")) ReportGeometryProblem(line);
         myRootOutput->roiTruth.enabled = !strcmp(tmpString2,"true");
